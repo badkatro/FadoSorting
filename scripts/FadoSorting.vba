@@ -9,22 +9,23 @@ Public strKeys() As String      ' string sorting keys array
 ' **********************************************************************************************************
 '
 
-Sub Master_Process_Doc_For_Alignment()
+Sub Master_Process_Doc_For_Alignment(TargetDocument As Document)
 ' Also does sorting of "chapters" (identified by a header with a one row table containing word "top" and an arrow)
 
 'Call CoverNote_Remove
 ' Bookmarks will be used for sorting, we need document to be clean for that
-Call All_Bookmarks_Remove(ActiveDocument)
+Call All_Bookmarks_Remove(TargetDocument)
 ' All little blue arrows are out, as well as most pictures (the ones from tables at least)
-Call AllInlineImagesDelete
+Call AllInlineImagesDelete(TargetDocument)
 ' All identifying "top" tables are highlighted (shaded in fact), rest of tables
 ' are converted to text
-Call Highlight_All_TopTables_CvTxt_Rest
+Call Highlight_All_TopTables_CvTxt_Rest(TargetDocument)
 ' Clean empty enters
-Call AllVBCr_Pairs_ToVbCr
-Call AllMultiple_VBCrs_To_Single
-Call AllPageBreaks_ToEnters
-
+Call AllVBCr_Pairs_ToVbCr(TargetDocument)
+Call AllMultiple_VBCrs_To_Single(TargetDocument)
+Call AllPageBreaks_ToEnters(TargetDocument)
+Call RemoveAll_PagebreakBefores(TargetDocument)
+Call AllTables_ConvertToText(TargetDocument)
 
 End Sub
 
@@ -108,7 +109,8 @@ Dim nrTopTables As Integer
 ' count its top tables
 nrTopTables = Count_TopTables(orDoc)
 
-Call All_Bookmarks_Remove(orDoc)
+' preprocess for alignment & sorting: remove pictures, convert tables, solve some char problems
+Call Master_Process_Doc_For_Alignment(orDoc)
 
 ' process target doc for sorting
 Call Set_Top_Bookmarks(orDoc, False)
@@ -118,7 +120,7 @@ Call Set_MainBookmarks(orDoc, nrTopTables)
 Dim OriginalDocument_Order_SortingKeys() As String
 
 'retrieve original doc chapter numbers order (to be followed on sorting target language doc
-OriginalDocument_Order_SortingKeys = Get_MainIDs_Original_SortingOrder_forAllBookmarks(orDoc, "Fado_", nrTopTables)
+OriginalDocument_Order_SortingKeys = Get_MainIDs_Original_SortingOrder_forAllBookmarks(orDoc, "Fado_", nrTopTables - 1) ' top bookmarks will always be ONE extra comp to main bookmarks: with 2 tops, 1 main (theres a top at the end too)
 
 
 '***************************************************************************************************************************************
@@ -138,7 +140,7 @@ If tgTopTablesCount <> nrTopTables Then
 End If
 
 
-Call All_Bookmarks_Remove(tgDoc)
+Call Master_Process_Doc_For_Alignment(tgDoc)
 
 '
 Call Set_Top_Bookmarks(tgDoc, False)
@@ -194,7 +196,8 @@ For Each tt In TargetDocument.Tables
     End If
 Next tt
 
-MsgBox "Au fost setate " & topCount & " bookmarks la tabelele TOP!", vbOKOnly, "Numar capitole"
+Debug.Print "Au fost setate " & topCount & " bookmarks la tabelele TOP! in " & TargetDocument.Name
+
 
 End Sub
 
@@ -216,6 +219,7 @@ If TargetDocument.Bookmarks.Count > 0 Then
         If Left$(TargetDocument.Bookmarks(j).Name, 4) = "topS" Then
             
             k = k + 1   ' topS bookmark index
+            
             If k < hm Then
                 Set trng = TargetDocument.Range(TargetDocument.Bookmarks("topS" & Format(k, "000")).Range.Start, _
                     TargetDocument.Bookmarks("topS" & Format(k + 1, "000")).Range.Start)
@@ -231,10 +235,11 @@ If TargetDocument.Bookmarks.Count > 0 Then
 End If
 
 
-MsgBox "Au fost setate " & k & " bookmarkuri <Fado_>"
+Debug.Print "Au fost setate " & k & " bookmarkuri <Fado_> in " & TargetDocument.Name
 
 
 End Sub
+
 
 Sub Set_MainBookmarks_accToSortingOrder(TargetDocument As Document, OriginalDoc_SortingOrder() As String, HowManyTopTables As Integer)
 
@@ -274,8 +279,11 @@ If TargetDocument.Bookmarks.Count > 0 Then
                 
                 ctChapter_mainID_origPosition = gscrolib.Get_Index_ofArray_Entry(OriginalDoc_SortingOrder, ctChapter_mainID)
                 
+                ' remove temp bookmark, no longer needed
+                ctChapter_tmpBkm.Delete
+                
                 ' "topS" & format(j+1, "000")).
-                TargetDocument.Bookmarks.Add "Fado_" & Format(ctChapter_mainID_origPosition, "000"), ctChapter_range
+                TargetDocument.Bookmarks.Add "Fado_" & Format(ctChapter_mainID_origPosition + 1, "000"), ctChapter_range    ' +1 because original Fado_ bkms are 1 based (they count themselves)
                 
             End If
         
@@ -286,7 +294,7 @@ If TargetDocument.Bookmarks.Count > 0 Then
 End If
 
 
-MsgBox "Au fost setate " & k & " bookmarkuri <Fado_>"
+Debug.Print "Au fost setate " & k & " bookmarkuri <Fado_> in " & TargetDocument.Name
 
 
 
@@ -318,12 +326,12 @@ If TargetDocument.Bookmarks.Count > 0 Then
             
             Set ck_tbk = TargetDocument.Bookmarks(BookmarksPrefix & Format(k, "000"))
             
-            ReDim Preserve tmpKeys(k)
+            ReDim Preserve tmpKeys(k - 1)
             
             tfn_par = Get_MainID_fromBookmark(TargetDocument, ck_tbk)
             
             If tfn_par <> "" Then
-                tmpKeys(k) = tfn_par
+                tmpKeys(k - 1) = Replace(tfn_par, Chr(160), "")
             Else
                 MsgBox "Getting main ID paragraph in " & ck_tbk.Name & " bookmark" & _
                     " failed, returning string was empty, please investigate !", vbOKOnly + vbCritical, "Error, no key for current bookmark!"
@@ -420,6 +428,7 @@ Dim rngdst As Range
 Set rngdst = firstTopStartRange.Duplicate
 
 Load frmSortPages
+frmSortPages.Show
 
 For i = 1 To BookmarksNumber
     
@@ -623,8 +632,11 @@ For Each ctIS In ActiveDocument.InlineShapes
         
         counter = counter + 1
         
-        cits.Select
-        ctIS.Type = wdInlineShapePicture
+        ctIS.Select
+        
+        ctIS.ConvertToShape
+        
+        'ctIS.Type = wdInlineShapePicture
         
     End If
 Next ctIS
@@ -635,17 +647,17 @@ MsgBox "Converted " & counter & " inline embedded OLEobjects to inline shapes!",
 
 End Sub
 
-Sub Highlight_All_TopTables_CvTxt_Rest()
+Sub Highlight_All_TopTables_CvTxt_Rest(TargetDocument As Document)
 
 Dim tt As Table
 
 
-If ActiveDocument.Tables.Count > 0 Then
+If TargetDocument.Tables.Count > 0 Then
     
     Dim topTablesCount As Integer
     Dim mrTablesCount As Integer
     
-    For Each tt In ActiveDocument.Tables
+    For Each tt In TargetDocument.Tables
         
         If tt.Rows.Count = 1 Then
             
@@ -668,10 +680,10 @@ If ActiveDocument.Tables.Count > 0 Then
         
     Next tt
     
-    MsgBox "Highlighted " & topTablesCount & " top tables, highlighted & converted txt " & mrTablesCount & " multiple rows tables"
+    Debug.Print "Highlighted " & topTablesCount & " top tables, highlighted & converted txt " & mrTablesCount & " multiple rows tables in " & TargetDocument.Name
     
 Else
-    MsgBox "Found NO tables in " & ActiveDocument.Name
+    Debug.Print "Found NO tables in " & TargetDocument.Name
 End If
 
 
@@ -708,7 +720,7 @@ Next tt
 
 Count_TopTables = topCount
 
-MsgBox topCount & " tabele TOP in " & TargetDocument.Name, vbOKOnly, "Numar capitole"
+Debug.Print "Numarat " & topCount & " tabele TOP in " & TargetDocument.Name
 
 
 End Function
@@ -891,7 +903,7 @@ Dim realtext As String
 
 realtext = ttab.Range.Text
 realtext = Replace(Replace(Replace(realtext, vbCr, ""), vbLf, ""), vbCrLf, "")
-realtext = Replace(Replace(Replace(realtext, vbcrcr, ""), " ", ""), Chr(160), "")
+realtext = Replace(Replace(Replace(realtext, vbCrCr, ""), " ", ""), Chr(160), "")
 realtext = Replace(Replace(realtext, Chr(13), ""), Chr(7), "")
 
 If realtext <> "" Then
@@ -902,7 +914,7 @@ End If
         
 End Function
 
-Sub AllVBCr_Pairs_ToVbCr()
+Sub AllVBCr_Pairs_ToVbCr(TargetDocument As Document)
 ' Clean empty paragraphs preceded by other "space symbols"
 ' such as Tab+Enter, Space+Enter, HardSpace+Enter
 
@@ -911,7 +923,7 @@ ls = gscrolib.GetListSeparatorFromRegistry
 
 If ls = "" Then MsgBox "List separator not extracted from registry!", vbOKOnly, "Please debug !": Exit Sub
 
-With ActiveDocument.StoryRanges(wdMainTextStory).Find
+With TargetDocument.StoryRanges(wdMainTextStory).Find
     .ClearAllFuzzyOptions
     .ClearFormatting
     .Format = False
@@ -925,14 +937,14 @@ End With
 
 End Sub
 
-Sub AllMultiple_VBCrs_To_Single()
+Sub AllMultiple_VBCrs_To_Single(TargetDocument As Document)
 
 Dim ls As String
 ls = gscrolib.GetListSeparatorFromRegistry
 
 If ls = "" Then MsgBox "List separator not extracted from registry!", vbOKOnly, "Please debug !": Exit Sub
 
-With ActiveDocument.StoryRanges(wdMainTextStory).Find
+With TargetDocument.StoryRanges(wdMainTextStory).Find
     .ClearAllFuzzyOptions
     .ClearFormatting
     .Format = False
@@ -984,6 +996,7 @@ Else
 End If
 
 End Function
+
 
 Sub ExtractAll_NonEmpty_NonNumeric_FirstParagraphs_ToNewDoc()   ' Effectively, extract Index (contents table) texts (chapter's titles)
 
@@ -1037,17 +1050,17 @@ If TargetDocument.Bookmarks.Count > 0 Then
             ' Trying to remove all expectable non-printing characters, to retrieve text only as it were
             mainID = tpar.Range.Text
             mainID = Replace(mainID, vbCr, "")
-            'mainID = Replace(Replace(Replace(mainID, vbCr, ""), vbLf, ""), vbCrLf, "")
-            'mainID = Replace(Replace(Replace(mainID, Chr(12), ""), Chr(160), " "), "  ", " ")
-            'mainID = Replace(Replace(Replace(mainID, Chr(10), ""), Chr(13), ""), Chr(7), "")
+            mainID = Replace(Replace(Replace(mainID, vbCr, ""), vbLf, ""), vbCrLf, "")
+            mainID = Replace(Replace(mainID, Chr(12), ""), "  ", " ")
+            mainID = Replace(Replace(Replace(mainID, Chr(10), ""), Chr(13), ""), Chr(7), "")
             
             If mainID Like Chr(160) & "###*" Then
                 tres = mainID
                 
                 If InStr(1, tres, ",") > 0 Then
-                    Get_MainID_fromBookmark = Split(tres, ",")(0)   ' Chapter has actually more than one main ID, separated by comma
+                    Get_MainID_fromBookmark = Replace(Split(tres, ",")(0), Chr(160), "")   ' Chapter has actually more than one main ID, separated by comma
                 Else
-                    Get_MainID_fromBookmark = tres
+                    Get_MainID_fromBookmark = Replace(tres, Chr(160), "")
                 End If
                 
                 Exit For
@@ -1065,6 +1078,7 @@ Else
 End If
 
 End Function
+
 
 Sub GetAll_MainIDs_ToNewDocument_Name()      ' GET BOOKMARKS IN NAME ORDER, POSITION SET ASIDE (FOR SITUATION WHEN THEY ARE ARRANGED IN NAME-ORDER)
 ' More complete verions, extract chapter name, numeric ID & bookmark name
@@ -1110,6 +1124,7 @@ If counter > 0 Then
 End If
 
 End Sub
+
 
 Sub Extract_AndList_AllHyperlinks()
 ' Put into new document all fields of type hyperlink, list their sub-address
@@ -1202,6 +1217,7 @@ End If
 
 End Sub
 
+
 Sub Build_Index_AtCursorPosition()
 ' Builds the "manual" contents table of the document at cursor position,
 ' by extracting chapters titles from bookmarks (Fado_###, # being digits)
@@ -1282,7 +1298,7 @@ If counter > 0 Then
     If bcounter = 0 Then
         MsgBox "Am identificat si stiluit " & counter & " main IDs"
     Else
-        MsgBox "Am identificat si stiluit " & counter & " main IDs" & vbcrcr & _
+        MsgBox "Am identificat si stiluit " & counter & " main IDs" & vbCrCr & _
             bcounter & " bookmarkuri au rezultat negativ !"
     End If
 End If
@@ -1683,15 +1699,7 @@ Next p
 
 End Sub
 
-Sub AllTablesDelete()
 
-Dim tt As Table
-
-For Each tt In ActiveDocument.Tables
-    tt.Delete
-Next tt
-
-End Sub
 
 Sub AllTables_Remove()
 
@@ -1711,17 +1719,58 @@ End If
 
 End Sub
 
-Sub AllInlineImagesDelete()
+
+
+Sub AllTables_ConvertToText(TargetDocument As Document)
+
+Dim tbl As Table, tblcount As Integer
+
+If Documents.Count > 0 Then   ' if document is opened
+    If TargetDocument.Tables.Count > 0 Then
+        For Each tbl In TargetDocument.Tables
+            tblcount = tblcount + 1
+            tbl.ConvertToText
+        Next tbl
+        StatusBar = "All " & tblcount & " tables were converted txt!"
+    End If
+Else
+    StatusBar = "Not working without opened document!"
+End If
+
+
+End Sub
+
+Sub AllTables_ConvertToText_CtDoc()
+
+Dim tbl As Table, tblcount As Integer
+
+If Documents.Count > 0 Then   ' if document is opened
+    If ActiveDocument.Tables.Count > 0 Then
+        For Each tbl In ActiveDocument.Tables
+            tblcount = tblcount + 1
+            tbl.ConvertToText
+        Next tbl
+        StatusBar = "All " & tblcount & " tables were converted txt!"
+    End If
+Else
+    StatusBar = "Not working without opened document!"
+End If
+
+
+End Sub
+
+
+Sub AllInlineImagesDelete(TargetDocument As Document)
 
 Dim ishape As InlineShape
 
 If Documents.Count > 0 Then
-    If ActiveDocument.InlineShapes.Count > 0 Then
-        For Each ishape In ActiveDocument.InlineShapes
+    If TargetDocument.InlineShapes.Count > 0 Then
+        For Each ishape In TargetDocument.InlineShapes
             ishape.Range.Text = ""
         Next ishape
     Else
-        StatusBar = "No inline shapes in current document!"
+        StatusBar = "No inline shapes in document " & TargetDocument.Name
     End If
 Else
     StatusBar = "Not working without opened document!"
@@ -1737,7 +1786,7 @@ If Documents.Count > 0 Then
     If ActiveDocument.Shapes.Count > 0 Then
         For Each shp In ActiveDocument.Shapes
             shp.Delete
-        Next ishape
+        Next shp
     Else
         StatusBar = "No inline shapes in current document!"
     End If
@@ -1752,7 +1801,7 @@ Sub AllPicturesDelete()
 
 If Documents.Count > 0 Then
     If ActiveDocument.InlineShapes.Count > 0 Then
-        Call AllInlineImagesDelete
+        Call AllInlineImagesDelete(ActiveDocument)
     End If
     
     If ActiveDocument.Shapes.Count > 0 Then
@@ -1762,9 +1811,9 @@ End If
 
 End Sub
 
-Sub AllPageBreaks_ToEnters()
+Sub AllPageBreaks_ToEnters(TargetDocument As Document)
 
-With ActiveDocument.StoryRanges(wdMainTextStory).Find
+With TargetDocument.StoryRanges(wdMainTextStory).Find
     .ClearFormatting
     .Execute "^12", , , True, , , True, wdFindStop, False, "^13", wdReplaceAll
 End With
@@ -1890,6 +1939,25 @@ For Each pp In ActiveDocument.Paragraphs
 Next pp
 
 Debug.Print ActiveDocument.Name & " has " & h1counter & " headings 1"
+
+End Sub
+
+Sub RemoveAll_PagebreakBefores(TargetDocument As Document)
+
+
+With TargetDocument.StoryRanges(wdMainTextStory).Find
+    
+    .ClearAllFuzzyOptions
+    .ClearFormatting
+    .ClearHitHighlight
+    
+    .Format = True
+    .Forward = True
+    
+    .Execute FindText:="", ReplaceWith:="", Replace:=wdReplaceAll
+    
+End With
+
 
 End Sub
 
