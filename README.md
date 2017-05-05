@@ -2,9 +2,12 @@
 
 Collection of routines to process special GSC document for alignment and final doc production:
 
-- Master_Process_Doc_For_Alignment - Run this to prepare doc by removing and converting heavy stuff, not needed for aligment
-- Master_Sort_ActiveDoc_FadoGlossary (incomplete - does not do preparations/ prior verifications) - Run this to sort current doc acc to linguistic order of its chapters titles, which it extracts by itself
-- Master_Sort_TargetDoc_forAlignment_FadoGlossary (almost complete) - Run this with source-target languages documents opened to auto-extract the chapter id order used in source and sort target doc accordingly
+- Master_Process_Doc_For_Alignment 
+    - Run this to prepare doc by removing and converting heavy stuff, not needed for alignment
+- Master_Sort_ActiveDoc_FadoGlossary (incomplete - does not do preparations/ prior verifications)   
+    - Run this to sort current doc acc to linguistic order of its chapters titles, which it extracts by itself
+- Master_Sort_TargetDoc_forAlignment_FadoGlossary (almost complete) 
+    - Run this with source-target languages documents opened to auto-extract the chapter id order used in source and sort target doc accordingly
 
     - one issue with this: misses one check, to see whether all chapters in both documents produce exactly the same main IDs (those are identified by one hard space before ### ID number, secondaries with simple space before. We're using this, so if this is not consistent, no good results! Perhaps to fix)
 
