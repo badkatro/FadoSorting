@@ -1,5 +1,5 @@
 # VBA Project: FadoSorting
-This repo (FadoSorting) was automatically created on 05/05/2017 16:48:56 by VBAGit.For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation") or [contact me on G+](https://plus.google.com/+BruceMcpherson "Bruce McPherson - GDE")  
+This repo (FadoSorting) was automatically created on 05/05/2017 19:23:19 by VBAGit.For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation") or [contact me on G+](https://plus.google.com/+BruceMcpherson "Bruce McPherson - GDE")  
 ## Details for VBA project FadoSorting
 Where possibile directly referenced or sub referenced library sources have been copied to this repository  
 ### Modules of FadoSorting included in this repo
