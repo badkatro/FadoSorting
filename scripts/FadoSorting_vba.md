@@ -2,7 +2,7 @@
 ## VBA Module: **[FadoSorting](/scripts/FadoSorting.vba "source is here")**
 ### Type: StdModule  
 
-This procedure list for repo (FadoSorting) was automatically created on 05/05/2017 16:48:56 by VBAGit.
+This procedure list for repo (FadoSorting) was automatically created on 05/05/2017 19:23:19 by VBAGit.
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation")
 
 Below is a section for each procedure in FadoSorting
@@ -20,6 +20,19 @@ Description: ****
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
 TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Master_Process_CtDoc_For_Alignment**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Master_Process_CtDoc_For_Alignment()*  
+
+**no arguments required for this procedure**
 
 
 ---
@@ -217,6 +230,45 @@ TargetDocument|Document|False||
 
 
 ---
+VBA Procedure: **Count_TopTables_CtDoc**  
+Type: **Function**  
+Returns: **Integer**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Count_TopTables_CtDoc() As Integer*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **Green_All_GoodTopTables**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Green_All_GoodTopTables()*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **Identify_First_MultiRow_TopTable**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Identify_First_MultiRow_TopTable()*  
+
+**no arguments required for this procedure**
+
+
+---
 VBA Procedure: **Count_TopTables**  
 Type: **Function**  
 Returns: **Integer**  
@@ -229,6 +281,19 @@ Description: ****
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
 TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Select_BadColorIndex_TopTable**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Select_BadColorIndex_TopTable()*  
+
+**no arguments required for this procedure**
 
 
 ---
