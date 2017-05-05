@@ -25,9 +25,37 @@ Call AllVBCr_Pairs_ToVbCr(TargetDocument)
 Call AllMultiple_VBCrs_To_Single(TargetDocument)
 Call AllPageBreaks_ToEnters(TargetDocument)
 Call RemoveAll_PagebreakBefores(TargetDocument)
-Call AllTables_ConvertToText(TargetDocument)
+
+Call Empty_MultiRowTables_Remove
+
 
 End Sub
+
+
+Sub Master_Process_CtDoc_For_Alignment()
+' Also does sorting of "chapters" (identified by a header with a one row table containing word "top" and an arrow)
+
+'Call CoverNote_Remove
+' Bookmarks will be used for sorting, we need document to be clean for that
+Call All_Bookmarks_Remove(ActiveDocument)
+
+' All little blue arrows are out, as well as most pictures (the ones from tables at least)
+Call AllInlineImagesDelete(ActiveDocument)
+
+' All identifying "top" tables are highlighted (shaded in fact), rest of tables
+' are converted to text
+Call Highlight_All_TopTables_CvTxt_Rest(ActiveDocument)
+
+' Clean empty enters
+Call AllVBCr_Pairs_ToVbCr(ActiveDocument)
+Call AllMultiple_VBCrs_To_Single(ActiveDocument)
+Call AllPageBreaks_ToEnters(ActiveDocument)
+Call RemoveAll_PagebreakBefores(ActiveDocument)
+
+Call Empty_MultiRowTables_Remove
+
+End Sub
+
 
 
 Sub Master_Sort_ActiveDoc_FadoGlossary()
@@ -105,12 +133,15 @@ End If
 ' First original doc
 'orDoc.Activate
 
+' preprocess for alignment & sorting: remove pictures, convert tables, solve some char problems
+'Call Master_Process_Doc_For_Alignment(orDoc)
+
+
 Dim nrTopTables As Integer
 ' count its top tables
 nrTopTables = Count_TopTables(orDoc)
 
-' preprocess for alignment & sorting: remove pictures, convert tables, solve some char problems
-Call Master_Process_Doc_For_Alignment(orDoc)
+Call All_Bookmarks_Remove(orDoc)
 
 ' process target doc for sorting
 Call Set_Top_Bookmarks(orDoc, False)
@@ -131,6 +162,8 @@ OriginalDocument_Order_SortingKeys = Get_MainIDs_Original_SortingOrder_forAllBoo
 ' switch active doc for preprocessing
 'tgDoc.Activate
 
+'Call Master_Process_Doc_For_Alignment(tgDoc)
+
 Dim tgTopTablesCount As Integer
 tgTopTablesCount = Count_TopTables(tgDoc)
 
@@ -139,8 +172,8 @@ If tgTopTablesCount <> nrTopTables Then
     Exit Sub
 End If
 
+Call All_Bookmarks_Remove(tgDoc)
 
-Call Master_Process_Doc_For_Alignment(tgDoc)
 
 '
 Call Set_Top_Bookmarks(tgDoc, False)
@@ -689,6 +722,150 @@ End If
 
 End Sub
 
+Function Count_TopTables_CtDoc() As Integer
+
+Dim tt As Table
+
+Dim topCount As Integer
+
+
+For Each tt In ActiveDocument.Tables
+    
+    If tt.Rows.Count = 1 Then
+        
+        If tt.Rows(1).Cells.Count = 1 Then
+            
+            If tt.Shading.BackgroundPatternColorIndex = 16 Then
+                
+                'If tt.Borders.OutsideLineStyle = 24 Then
+                'tt.Rows(1).Cells(1).Range.Text Like "??top??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "???nceput??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "??nceput??" Then
+                    topCount = topCount + 1
+                ' Our "top" tables !
+                'tt.Range.Shading.BackgroundPatternColorIndex = wdYellow
+                
+'                Set tempRange = tt.Range
+'                tempRange.Collapse (wdCollapseStart)
+'                tempRange.MoveEnd wdCharacter, -1
+'                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+                'End If
+                
+            End If
+            
+        End If
+        
+    End If
+    
+Next tt
+
+Count_TopTables_CtDoc = topCount
+
+Debug.Print "Numarat " & topCount & " tabele TOP in " & ActiveDocument.Name
+
+End Function
+
+
+Sub Green_All_GoodTopTables()
+
+Dim tt As Table
+
+Dim topCount As Integer
+
+
+For Each tt In ActiveDocument.Tables
+    
+    If tt.Rows.Count = 1 Then
+        
+        If tt.Rows(1).Cells.Count = 1 Then
+            
+            If tt.Shading.BackgroundPatternColorIndex = 16 Then
+                
+                If tt.Borders.OutsideLineStyle = 24 Then
+                'tt.Rows(1).Cells(1).Range.Text Like "??top??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "???nceput??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "??nceput??" Then
+                
+                
+                topCount = topCount + 1
+                tt.Shading.BackgroundPatternColorIndex = wdBrightGreen
+                
+                ' Our "top" tables !
+                'tt.Range.Shading.BackgroundPatternColorIndex = wdYellow
+                
+'                Set tempRange = tt.Range
+'                tempRange.Collapse (wdCollapseStart)
+'                tempRange.MoveEnd wdCharacter, -1
+'                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+                End If
+                
+            End If
+            
+        End If
+        
+    End If
+    
+Next tt
+
+
+
+Debug.Print "Numarat " & topCount & " tabele TOP in " & ActiveDocument.Name
+
+
+End Sub
+
+
+Sub Identify_First_MultiRow_TopTable()
+
+Dim tt As Table
+
+Dim topCount As Integer
+
+
+For Each tt In ActiveDocument.Tables
+    
+    'If tt.Borders.OutsideLineStyle = 24 Then
+    
+        If tt.Rows.Count = 1 Then
+        
+        'If tt.Rows(1).Cells.Count = 1 Then
+            
+            If tt.Shading.BackgroundPatternColorIndex <> wdAuto And _
+               tt.Shading.BackgroundPatternColorIndex <> 16 Then
+                
+                
+                tt.Select
+                Exit For
+                
+                'tt.Rows(1).Cells(1).Range.Text Like "??top??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "???nceput??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "??nceput??" Then
+                    
+                'topCount = topCount + 1
+                ' Our "top" tables !
+                'tt.Range.Shading.BackgroundPatternColorIndex = wdYellow
+                
+'                Set tempRange = tt.Range
+'                tempRange.Collapse (wdCollapseStart)
+'                tempRange.MoveEnd wdCharacter, -1
+'                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+                'End If
+                
+            End If
+            
+        End If
+        
+    'End If
+    
+Next tt
+
+
+
+Debug.Print "Numarat " & topCount & " tabele TOP in " & ActiveDocument.Name
+
+End Sub
+
+
 
 Function Count_TopTables(TargetDocument As Document) As Integer
 
@@ -702,17 +879,21 @@ For Each tt In TargetDocument.Tables
     If tt.Rows.Count = 1 Then
         If tt.Rows(1).Cells.Count = 1 Then
             If tt.Shading.BackgroundPatternColorIndex = 16 Then
+                
+                'If tt.Rows(1).Cells(1).Range.Text Like "??top??" Then
+                
                 'tt.Rows(1).Cells(1).Range.Text Like "??top??" Or _
                 tt.Rows(1).Cells(1).Range.Text Like "???nceput??" Or _
                 tt.Rows(1).Cells(1).Range.Text Like "??nceput??" Then
-                topCount = topCount + 1
+                    topCount = topCount + 1
                 ' Our "top" tables !
                 'tt.Range.Shading.BackgroundPatternColorIndex = wdYellow
                 
-                Set tempRange = tt.Range
-                tempRange.Collapse (wdCollapseStart)
-                tempRange.MoveEnd wdCharacter, -1
-                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+'                Set tempRange = tt.Range
+'                tempRange.Collapse (wdCollapseStart)
+'                tempRange.MoveEnd wdCharacter, -1
+'                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+                'End If
             End If
         End If
     End If
@@ -724,6 +905,44 @@ Debug.Print "Numarat " & topCount & " tabele TOP in " & TargetDocument.Name
 
 
 End Function
+
+Sub Select_BadColorIndex_TopTable()
+
+
+Dim tt As Table
+
+Dim topCount As Integer
+
+
+For Each tt In ActiveDocument.Tables
+    If tt.Rows.Count = 1 Then
+        If tt.Rows(1).Cells.Count = 1 Then
+            If tt.Shading.BackgroundPatternColorIndex <> 16 Then
+                'tt.Rows(1).Cells(1).Range.Text Like "??top??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "???nceput??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "??nceput??" Then
+                'topCount = topCount + 1
+                
+                tt.Range.Select
+                Exit For
+                
+                ' Our "top" tables !
+                'tt.Range.Shading.BackgroundPatternColorIndex = wdYellow
+                
+'                Set tempRange = tt.Range
+'                tempRange.Collapse (wdCollapseStart)
+'                tempRange.MoveEnd wdCharacter, -1
+'                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+            End If
+        End If
+    End If
+Next tt
+
+
+Debug.Print "Bad color index top table 1 selected"
+
+
+End Sub
 
 Sub Remove_AllTopTables()
 
