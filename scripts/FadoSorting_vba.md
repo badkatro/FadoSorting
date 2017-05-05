@@ -2,7 +2,7 @@
 ## VBA Module: **[FadoSorting](/scripts/FadoSorting.vba "source is here")**
 ### Type: StdModule  
 
-This procedure list for repo (FadoSorting) was automatically created on 04/05/2017 19:27:55 by VBAGit.
+This procedure list for repo (FadoSorting) was automatically created on 05/05/2017 16:48:56 by VBAGit.
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation")
 
 Below is a section for each procedure in FadoSorting
@@ -15,9 +15,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Sub Master_Process_Doc_For_Alignment()*  
+*Sub Master_Process_Doc_For_Alignment(TargetDocument As Document)*  
 
-**no arguments required for this procedure**
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
 
 
 ---
@@ -207,9 +209,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Sub Highlight_All_TopTables_CvTxt_Rest()*  
+*Sub Highlight_All_TopTables_CvTxt_Rest(TargetDocument As Document)*  
 
-**no arguments required for this procedure**
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
 
 
 ---
@@ -354,9 +358,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Sub AllVBCr_Pairs_ToVbCr()*  
+*Sub AllVBCr_Pairs_ToVbCr(TargetDocument As Document)*  
 
-**no arguments required for this procedure**
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
 
 
 ---
@@ -367,9 +373,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Sub AllMultiple_VBCrs_To_Single()*  
+*Sub AllMultiple_VBCrs_To_Single(TargetDocument As Document)*  
 
-**no arguments required for this procedure**
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
 
 
 ---
@@ -761,19 +769,6 @@ Description: ****
 
 
 ---
-VBA Procedure: **AllTablesDelete**  
-Type: **Sub**  
-Returns: **void**  
-Return description: ****  
-Scope: **Public**  
-Description: ****  
-
-*Sub AllTablesDelete()*  
-
-**no arguments required for this procedure**
-
-
----
 VBA Procedure: **AllTables_Remove**  
 Type: **Sub**  
 Returns: **void**  
@@ -787,6 +782,34 @@ Description: ****
 
 
 ---
+VBA Procedure: **AllTables_ConvertToText**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub AllTables_ConvertToText(TargetDocument As Document)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **AllTables_ConvertToText_CtDoc**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub AllTables_ConvertToText_CtDoc()*  
+
+**no arguments required for this procedure**
+
+
+---
 VBA Procedure: **AllInlineImagesDelete**  
 Type: **Sub**  
 Returns: **void**  
@@ -794,9 +817,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Sub AllInlineImagesDelete()*  
+*Sub AllInlineImagesDelete(TargetDocument As Document)*  
 
-**no arguments required for this procedure**
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
 
 
 ---
@@ -833,9 +858,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Sub AllPageBreaks_ToEnters()*  
+*Sub AllPageBreaks_ToEnters(TargetDocument As Document)*  
 
-**no arguments required for this procedure**
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
 
 
 ---
@@ -953,3 +980,18 @@ Description: ****
 *Sub countHeadings1()*  
 
 **no arguments required for this procedure**
+
+
+---
+VBA Procedure: **RemoveAll_PagebreakBefores**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub RemoveAll_PagebreakBefores(TargetDocument As Document)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
