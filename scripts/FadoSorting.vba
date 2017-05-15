@@ -189,6 +189,71 @@ Call Bkm_Sort_byName(tgDoc, tgTopTablesCount)
 End Sub
 
 
+Function Check_andFix_allIDs(TargetDocument As Document) As Boolean
+
+
+Dim bkm As Bookmark
+
+If TargetDocument.Bookmarks.Count > 0 Then
+    
+    For Each bkm In TargetDocument.Bookmarks
+        If Left(bkm.Name, 5) = "Fado_" Then
+            Call Repare_IDs_forBookmark(bkm)
+        End If
+    Next bkm
+    
+Else
+    Check_andFix_allIDs = False
+End If
+
+Check_andFix_allIDs = True
+
+
+End Function
+
+
+Sub Repare_IDs_forBookmark(TargetBookmark As Bookmark)
+
+If TargetBookmark.Range.Tables.Count > 0 Then
+    
+    Dim tmpRange As Range
+    
+    Set tmpRange = TargetBookmark.Range.Tables(1).Range
+    tmpRange.Collapse (wdCollapseEnd)
+    tmpRange.SetRange tmpRange.Start, TargetBookmark.Range.End
+    
+    Dim colIDParagraphs As Collection
+    
+    colIDParagraphs = Get_IDsParagraphs_forRange(tmpRange)
+    
+    Call Repair_IDs_fromCollection(colIDParagraphs)
+    
+Else
+
+End If
+
+End Sub
+
+
+Sub Get_IDsParagraphs_forRange(TargetRange As Range)
+
+Dim tmpPar As Paragraph
+    
+    Dim IDsCollection As Collection
+    
+    Set tmpPar = TargetRange.Paragraphs(1)
+    
+    
+    
+    If IsNumeric(Replace(Replace(Replace(Replace(tmpPar.Range.Text, "(", ""), ")", ""), " ", ""), Chr(160), "")) Then
+    
+        IDsCollection.Add (tmpPar)
+    
+    End If
+
+End Sub
+
+
 Sub Set_Top_Bookmarks(TargetDocument As Document, Remove_MultiRow_Tables As Boolean)
 ' Set all topS### bookmarks, one jest before all chapters' top table.
 
