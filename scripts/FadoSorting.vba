@@ -226,7 +226,7 @@ If TargetBookmark.Range.Tables.Count > 0 Then
     
     colIDParagraphs = Get_IDsParagraphs_forRange(tmpRange)
     
-    Call Repair_IDs_fromCollection(colIDParagraphs)
+    Call Repair_IDs_fromCollection(TargetBookmark, colIDParagraphs)
     
 Else
 
@@ -235,7 +235,45 @@ End If
 End Sub
 
 
-Sub Get_IDsParagraphs_forRange(TargetRange As Range)
+Sub Repair_IDs_fromCollection(TargetBookmark As Bookmark, TargetParagraphsCollection As Collection)
+
+
+Dim tmpPar As Paragraph
+
+
+If TargetParagraphsCollection.Count = 1 Then
+    
+    Set tmpPar = TargetParagraphsCollection.Item(1)
+    Call Repair_MainIDParagraph(tmpPar)
+    
+ElseIf TargetParagraphsCollection.Count > 1 Then
+    
+    For i = 1 To TargetParagraphsCollection.Count
+        Set tmpPar = TargetParagraphsCollection.Item(i)
+        Call Repair_MainIDParagraph(tmpPar)
+    Next i
+    
+ElseIf TargetParagraphsCollection = 0 Then
+    Debug.Print "Repair_IDs: Found NO ID paragraphs for bkm " & TargetBookmark.Name
+End If
+
+
+End Sub
+
+
+Sub Repair_MainIDParagraph(ByRef TargetParagraph As Paragraph)
+
+' add NB space before if par seems to be main ID one (like ### or like [space]### or maybe even ###,### with or without spaces)
+If TargetParagraph.Range.Text Like "###" Or TargetParagraph.Range.Text Like " ###" Then
+    TargetParagraph.Range.Text = Chr(160) & TargetParagraph.Range.Text
+    Debug.Print "Repair_MainIDParagraphs: Repaired main ID par " & TargetParagraph.Parent.Index
+End If
+
+
+End Sub
+
+
+Function Get_IDsParagraphs_forRange(TargetRange As Range) As Collection
 
 Dim tmpPar As Paragraph
     
@@ -244,14 +282,28 @@ Dim tmpPar As Paragraph
     Set tmpPar = TargetRange.Paragraphs(1)
     
     
+    Dim tmpParText As String
+    tmpParText = tmpPar.Range.Text
     
-    If IsNumeric(Replace(Replace(Replace(Replace(tmpPar.Range.Text, "(", ""), ")", ""), " ", ""), Chr(160), "")) Then
+    ' we clean away parantheses, simple and hard spaces and we should be left with numerics in the case of ID paragraphs
+    tmpParText = Replace(Replace(Replace(Replace(tmpParText, "(", ""), ")", ""), " ", ""), Chr(160), "")
+    tmpParText = Replace(tmpParText, vbCr, "")
     
-        IDsCollection.Add (tmpPar)
     
-    End If
+    ' we cleaned spaces and parantheses, for id paragraphs now should be left only numbers. We also ignore empty paragraphs
+    Do While IsNumeric(tmpParText) Or tmpParText.Text = ""
+    
+        If IsNumeric(tmpParText) Then
+        
+            IDsCollection.Add (tmpPar)
+        
+        End If
+    
+    Loop
+    
+    Get_IDsParagraphs_forRange = IDsCollection
 
-End Sub
+End Function
 
 
 Sub Set_Top_Bookmarks(TargetDocument As Document, Remove_MultiRow_Tables As Boolean)
