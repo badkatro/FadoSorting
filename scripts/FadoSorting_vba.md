@@ -2,7 +2,7 @@
 ## VBA Module: **[FadoSorting](/scripts/FadoSorting.vba "source is here")**
 ### Type: StdModule  
 
-This procedure list for repo (FadoSorting) was automatically created on 15/05/2017 09:05:40 by VBAGit.
+This procedure list for repo (FadoSorting) was automatically created on 15/05/2017 19:14:19 by VBAGit.
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation")
 
 Below is a section for each procedure in FadoSorting
@@ -92,14 +92,45 @@ TargetBookmark|Bookmark|False||
 
 
 ---
-VBA Procedure: **Get_IDsParagraphs_forRange**  
+VBA Procedure: **Repair_IDs_fromCollection**  
 Type: **Sub**  
 Returns: **void**  
 Return description: ****  
 Scope: **Public**  
 Description: ****  
 
-*Sub Get_IDsParagraphs_forRange(TargetRange As Range)*  
+*Sub Repair_IDs_fromCollection(TargetBookmark As Bookmark, TargetParagraphsCollection As Collection)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetBookmark|Bookmark|False||
+TargetParagraphsCollection|Collection|False||
+
+
+---
+VBA Procedure: **Repair_MainIDParagraph**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Repair_MainIDParagraph(ByRef TargetParagraph As Paragraph)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+ByRef|Paragraph|False||
+
+
+---
+VBA Procedure: **Get_IDsParagraphs_forRange**  
+Type: **Function**  
+Returns: **Collection**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Get_IDsParagraphs_forRange(TargetRange As Range) As Collection*  
 
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
