@@ -128,14 +128,13 @@ End If
 '***************************************************************************************************************************************
 '************************************************* FIRST SOURCE DOC PROCESSING *********************************************************
 '***************************************************************************************************************************************
-
-
+'
 ' First original doc
 'orDoc.Activate
-
+'
 ' preprocess for alignment & sorting: remove pictures, convert tables, solve some char problems
 'Call Master_Process_Doc_For_Alignment(orDoc)
-
+'
 
 Dim nrTopTables As Integer
 ' count its top tables
@@ -184,6 +183,386 @@ Call Set_MainBookmarks_accToSortingOrder(tgDoc, OriginalDocument_Order_SortingKe
 
 ' TO DO
 Call Bkm_Sort_byName(tgDoc, tgTopTablesCount)
+
+
+End Sub
+
+
+Sub GetAll_MainIDs_ToNewDocument_Name()      ' GET BOOKMARKS IN NAME ORDER, POSITION SET ASIDE (FOR SITUATION WHEN THEY ARE ARRANGED IN NAME-ORDER)
+' More complete verions, extract chapter name, numeric ID & bookmark name
+
+Dim tbk As Bookmark
+Dim tDoc As Document
+Dim cdoc As Document
+Dim counter As Integer
+
+Dim k As Integer
+
+Dim trange As Range
+Set trange = ActiveDocument.StoryRanges(wdMainTextStory)
+
+Set cdoc = ActiveDocument
+
+If trange.Bookmarks.Count > 0 Then
+    For j = 1 To trange.Bookmarks.Count
+        
+        Set tbk = trange.Bookmarks(j)
+        
+        If Left$(tbk.Name, 5) = "Fado_" Then
+            k = k + 1       ' good bookmarks index
+            If k = 1 Then
+                Set tDoc = Documents.Add
+                cdoc.Activate
+                
+                tDoc.Content.InsertAfter ("Bkm " & tbk.Name & "   =   " & _
+                    Get_First_NonEmpty_NonNumeric_Paragraph(cdoc, tbk) & "   " & vbTab & "-   ID " & Get_MainID_fromBookmark(cdoc, tbk) & vbCr)
+                counter = counter + 1
+            Else
+                tDoc.Content.InsertAfter ("Bkm " & tbk.Name & "   =   " & _
+                    Get_First_NonEmpty_NonNumeric_Paragraph(cdoc, tbk) & "   " & vbTab & "-   ID " & Get_MainID_fromBookmark(cdoc, tbk) & vbCr)
+                counter = counter + 1
+            End If
+        End If
+        
+    Next j
+End If
+
+If counter > 0 Then
+    MsgBox "S-au gasit si extras " & counter & " main IDs"
+End If
+
+End Sub
+
+' Main routine to check cross-references, it is similar to Extract_AndList_AllHyperlinks, but it does not present the result in a comparative
+' table as the other one, where user will have to manually look for eroneous cross-refs.
+
+' This one does same, but for 2 opened documents, original and translation (source and target languages) and eliminates by itself unneeded results...
+' presenting to user only useful results: the wrong hyperlinks !
+Sub Extract_abdCheck_All_CrossReferences()
+
+
+Dim sDoc As Document, tDoc As Document
+
+If Documents.Count <> 2 Then
+    MsgBox "Please open at least 2 documents for hyperlink data comparison, source and target languages!"
+    Exit Sub
+End If
+
+
+If Documents(1).Name Like "*.en##*" Then
+    Set sDoc = Documents(1)
+    Set tDoc = Documents(2)
+Else
+    Set sDoc = Documents(2)
+    Set tDoc = Documents(1)
+End If
+
+
+If MsgBox("Shall we proceed with source document as " & sDoc.Name & " and target as " & tDoc & " ?", vbYesNo + vbQuestion) = vbNo Then
+    StatusBar = "Extract_abdCheck_All_CrossReferences: Wrong documents, Quitting..."
+    Exit Sub
+End If
+
+
+
+Dim sourceIDs_and_Hypers
+Dim targetIDs_and_Hypers
+
+sourceIDs_and_Hypers = Get_All_IDs_andHyperlinks(sDoc)
+targetIDs_and_Hypers = Get_All_IDs_andHyperlinks(tDoc)
+
+
+If UBound(sourceIDs_and_Hypers, 2) <> UBound(targetIDs_and_Hypers, 2) Then
+    MsgBox "ERROR while extracting and comparing hyperlinks in FADO source and target documents: extracted " & UBound(sourceIDs_and_Hypers, 2) & " chapters from " & sDoc.Name & _
+        UBound(targetIDs_and_Hypers, 2) & " from " & tDoc.Name & "!" & vbCr & "Please run IDs and Title extraction routines and correct docs to obtain perfect extraction!"
+    Exit Sub
+End If
+
+Debug.Print "Extracted from " & ActiveDocument.Name & " IDInfos for " & UBound(IDs_and_Hypers, 2) & " Fado bookmarks!"
+
+
+
+
+'If UBound(IDs_and_Hypers, 2) > 0 Then
+'
+'    Documents.Add
+'
+'    For i = 0 To UBound(IDs_and_Hypers, 2)
+'
+'        ActiveDocument.StoryRanges(wdMainTextStory).InsertAfter (IDs_and_Hypers(0, i) & vbTab & IDs_and_Hypers(1, i) & vbTab & IDs_and_Hypers(2, i) & vbCr)
+'
+'    Next i
+'
+'End If
+
+
+End Sub
+
+' Identical to but does not present results in a Word doc table, returns bidimensional array instead
+Function Get_All_IDs_andHyperlinks(TargetDocument As Document) As String()
+
+Dim tbk As Bookmark
+Dim counter As Integer, bcounter As Integer, idx As Integer
+
+
+Dim sDoc As Document
+Set sDoc = TargetDocument
+
+Dim thy As Hyperlink
+Dim ttb As Table
+
+
+Dim tmpResults() As String
+
+If sDoc.Bookmarks.Count > 0 Then
+
+    For Each tbk In sDoc.StoryRanges(wdMainTextStory).Bookmarks   ' accessing by range provides for ordered access
+        
+        If Left$(tbk.Name, 5) = "Fado_" Then    ' Process only the good hyperlinks
+            
+            ' Om first FADO bookmark, initialize everything
+            If counter = 0 Then
+                
+                idx = idx + 1
+                
+                ReDim tmpResults(2, 0)  ' tri-dimensional array returned, first dimension is main ID, second is Hyperlink number, third hyperlinks sub-address info (pipe-separated string)
+                
+                tmpResults(0, 0) = Get_MainID_fromBookmark(sDoc, tbk)
+                ' DONT return chapter title in this ? !? Useful ?
+                'Get_First_NonEmpty_NonNumeric_Paragraph(sdoc, tbk)
+                            
+                If tbk.Range.Hyperlinks.Count > 0 Then
+                    
+                    counter = counter + 1
+                    
+                    ' store current bookmarks hyperlinks number in second dimension of temp array
+                    tmpResults(1, 0) = tbk.Range.Hyperlinks.Count
+                    
+                    Dim tmpHypSubInfo As String
+                    
+                    ' take into account normal hypers also, with web or mail address instead of sub-address !
+                    
+                    
+                    For Each thy In tbk.Range.Hyperlinks
+                        If thy.SubAddress <> "" Then    ' cross-reference
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.SubAddress, tmpHypSubInfo & "|" & thy.SubAddress)   ' make a pipe-separated string with all sub-addresses of all hyps in range
+                        Else    ' normal hyperlink, web or mail
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.Address, tmpHypSubInfo & "|" & thy.Address)
+                        End If
+                    Next thy
+                    
+                    
+                    tmpResults(2, 0) = tmpHypSubInfo
+                    tmpHypSubInfo = ""
+                    
+                Else    ' No hyperlinks subaddresses to gather, there are none !
+                    bcounter = bcounter + 1
+                    tmpResults(1, 0) = tbk.Range.Hyperlinks.Count
+                End If
+                
+            Else    ' Second and all other passes
+            
+                idx = idx + 1
+                
+                ReDim Preserve tmpResults(2, idx - 1)
+                'ttb.Rows.Add
+                
+                tmpResults(0, idx - 1) = Get_MainID_fromBookmark(sDoc, tbk)
+                
+                If tbk.Range.Hyperlinks.Count > 0 Then
+                        
+                    counter = counter + 1
+                    
+                    tmpResults(1, idx - 1) = tbk.Range.Hyperlinks.Count
+                    
+                    For Each thy In tbk.Range.Hyperlinks
+                        If thy.SubAddress <> "" Then    ' cross-reference
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.SubAddress, tmpHypSubInfo & "|" & thy.SubAddress)   ' make a pipe-separated string with all sub-addresses of all hyps in range
+                        Else    ' normal hyperlink, web or mail
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.Address, tmpHypSubInfo & "|" & thy.Address)
+                        End If
+                    Next thy
+                    
+                    tmpResults(2, idx - 1) = tmpHypSubInfo
+                    tmpHypSubInfo = ""
+                                                    
+                Else    ' no hypers in current bkm
+                
+                    bcounter = bcounter + 1
+                    tmpResults(1, idx - 1) = tbk.Range.Hyperlinks.Count
+                    
+                End If
+            
+            End If
+        
+        End If  ' If tbk.name este "Fado_###"
+        
+    Next tbk
+
+End If
+
+
+'If counter > 0 Then     ' counted bkms with hypers
+'    If bcounter = 0 Then
+'        MsgBox "S-au procesat " & counter & " bookmarkuri cu cel putin 1 hiperlinkuri"
+'    Else
+'        MsgBox "Au fost gasite " & bcounter & " bookmarkuri fara hiperlinkuri"
+'    End If
+'Else
+'End If
+
+Get_All_IDs_andHyperlinks = tmpResults
+
+End Function
+
+
+Sub Extract_AndList_AllHyperlinks()
+' Put into new document all fields of type hyperlink, list their sub-address
+
+Dim tbk As Bookmark
+Dim counter As Integer, bcounter As Integer, idx As Integer
+
+Dim sDoc As Document, tDoc As Document
+Set sDoc = ActiveDocument
+
+Dim thy As Hyperlink
+Dim ttb As Table
+
+Dim tsubs As String
+
+If ActiveDocument.Bookmarks.Count > 0 Then
+    For Each tbk In ActiveDocument.StoryRanges(wdMainTextStory).Bookmarks   ' accessing by range provides for ordered access
+        
+        If Left$(tbk.Name, 5) = "Fado_" Then    ' Process only the good hyperlinks
+        
+            If counter = 0 Then
+                idx = idx + 1
+                Set tDoc = Documents.Add: tDoc.Tables.Add tDoc.Paragraphs(1).Range, 1, 3: Set ttb = tDoc.Tables(1): sDoc.Activate
+                
+                ttb.Rows(1).Cells(1).Range.Text = "Main ID": ttb.Rows(1).Cells(2).Range.Text = "Chapter title": ttb.Rows(1).Cells(3).Range.Text = "Hyperlinks and targets"
+                
+                ttb.Rows.Add
+                ttb.Rows(2).Cells(1).Range.Text = Get_MainID_fromBookmark(sDoc, tbk)
+                ttb.Rows(2).Cells(2).Range.Text = Get_First_NonEmpty_NonNumeric_Paragraph(sDoc, tbk)
+                            
+                If tbk.Range.Hyperlinks.Count > 0 Then
+                        
+                    counter = counter + 1
+                    
+                    For Each thy In tbk.Range.Hyperlinks
+                        tsubs = tsubs & thy.SubAddress & vbTab
+                    Next thy
+                    
+                    ttb.Rows(2).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count & vbCr & tsubs
+                    tsubs = ""
+                                                    
+                Else
+                    bcounter = bcounter + 1
+                    ttb.Rows(2).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count
+                End If
+                
+            Else
+                idx = idx + 1
+                
+                ttb.Rows.Add
+                
+                ttb.Rows(ttb.Rows.Count).Cells(1).Range.Text = Get_MainID_fromBookmark(sDoc, tbk)
+                ttb.Rows(ttb.Rows.Count).Cells(2).Range.Text = Get_First_NonEmpty_NonNumeric_Paragraph(sDoc, tbk)
+                            
+                If tbk.Range.Hyperlinks.Count > 0 Then
+                        
+                    counter = counter + 1
+                    
+                    For Each thy In tbk.Range.Hyperlinks
+                        tsubs = tsubs & thy.SubAddress & vbTab
+                    Next thy
+                    
+                    ttb.Rows(ttb.Rows.Count).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count & vbCr & tsubs
+                    tsubs = ""
+                                                    
+                Else
+                    bcounter = bcounter + 1
+                    ttb.Rows(ttb.Rows.Count).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count
+                End If
+            
+            End If
+        
+        End If  ' If tbk.name este "Fado_###"
+        
+    Next tbk
+
+tDoc.SpellingChecked = True    ' Get rid of pesky red underlining
+
+End If
+
+
+If counter > 0 Then
+    If bcounter = 0 Then
+        MsgBox "S-au procesat " & counter & " bookmarkuri cu cel putin 1 hiperlinkuri"
+    Else
+        MsgBox "Au fost gasite " & bcounter & " bookmarkuri fara hiperlinkuri"
+    End If
+    
+End If
+
+End Sub
+
+
+' Complementary check to Extract_AndList_AllHyperlinks check, in which we check the actual location of all ID bookmarks
+Sub All_IDs_Bookmarks_LocationCheck_CtDoc()
+
+Dim tmpResult() As String
+
+tmpResult = Get_IDs_Bookmarks_LocationCheck(ActiveDocument)
+
+
+If Not IsNotDimensionedArr(tmpResult) Then
+    
+    Dim bad_IDBkms_Names As String
+    
+    bad_IDBkms_Names = Join(tmpResult, " | ")
+    
+    MsgBox "FOUND " & UBound(tmpResult) + 1 & " badly located ID bookmarks:" & vbCr & vbCr & _
+        bad_IDBkms_Names
+    
+Else
+    MsgBox "All ID Bookmarks location check OK !"
+End If
+
+Sub Build_Index_AtCursorPosition()
+' Builds the "manual" contents table of the document at cursor position,
+' by extracting chapters titles from bookmarks (Fado_###, # being digits)
+' Make sure such bookmarks exist and contain a chapter each before running this one
+
+Dim tbk As Bookmark
+Dim counter As Integer
+
+Dim trange As Range
+Set trange = ActiveDocument.StoryRanges(wdMainTextStory)
+
+If trange.Bookmarks.Count > 0 Then
+    For j = 1 To trange.Bookmarks.Count
+        
+        Set tbk = trange.Bookmarks(j)
+        
+        If Left$(tbk.Name, 5) = "Fado_" Then
+            
+            Selection.InsertAfter Get_First_NonEmpty_NonNumeric_Paragraph(ActiveDocument, tbk)     ' To create hyperlink, insert text first
+            ActiveDocument.Hyperlinks.Add Selection.Range, , "_" & _
+                Replace(Get_MainID_fromBookmark(ActiveDocument, tbk), Chr(160), ""), , Selection.Text
+            Selection.InsertAfter vbCr: Selection.Collapse (wdCollapseEnd)
+            
+            'selection.InsertAfter (Get_First_NonEmpty_NonNumeric_Paragraph(tbk) & Get_MainID_fromBookmark(tbk) & vbCr)
+            counter = counter + 1
+        
+        End If
+        
+    Next j
+End If
+
+If counter > 0 Then
+    MsgBox "S-au inserat " & counter & " intrari in Index !"
+End If
 
 
 End Sub
@@ -709,11 +1088,11 @@ End Sub
 Sub All_OLEShapes_Count()
 
 Dim tgDoc As Document
-Dim sdoc As Document
+Dim sDoc As Document
 
-Set sdoc = ActiveDocument
+Set sDoc = ActiveDocument
 Set tgDoc = Documents.Add
-sdoc.Activate
+sDoc.Activate
 
 Dim ctIS As InlineShape
 
@@ -738,11 +1117,11 @@ End Sub
 Sub AllOleShapes_Extract()
 
 Dim tgDoc As Document
-Dim sdoc As Document
+Dim sDoc As Document
 
-Set sdoc = ActiveDocument
+Set sDoc = ActiveDocument
 Set tgDoc = Documents.Add
-sdoc.Activate
+sDoc.Activate
 
 Dim ctIS As InlineShape
 
@@ -931,6 +1310,55 @@ Debug.Print "Numarat " & topCount & " tabele TOP in " & ActiveDocument.Name
 
 End Sub
 
+
+Sub Gray_All_GoodTopTables()
+' BACK to original colour
+
+Dim tt As Table
+
+Dim topCount As Integer
+
+
+For Each tt In ActiveDocument.Tables
+    
+    If tt.Rows.Count = 1 Then
+        
+        If tt.Rows(1).Cells.Count = 1 Then
+            
+            If tt.Shading.BackgroundPatternColorIndex = 4 Then      ' GREEN
+                
+                If tt.Borders.OutsideLineStyle = 24 Then
+                'tt.Rows(1).Cells(1).Range.Text Like "??top??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "???nceput??" Or _
+                tt.Rows(1).Cells(1).Range.Text Like "??nceput??" Then
+                
+                
+                topCount = topCount + 1
+                tt.Shading.BackgroundPatternColorIndex = 16
+                
+                ' Our "top" tables !
+                'tt.Range.Shading.BackgroundPatternColorIndex = wdYellow
+                
+'                Set tempRange = tt.Range
+'                tempRange.Collapse (wdCollapseStart)
+'                tempRange.MoveEnd wdCharacter, -1
+'                TargetDocument.Bookmarks.Add "topS" & Format(topCount, "000"), tempRange
+                End If
+                
+            End If
+            
+        End If
+        
+    End If
+    
+Next tt
+
+
+
+Debug.Print "Numarat " & topCount & " tabele TOP in " & ActiveDocument.Name
+
+
+End Sub
 
 Sub Identify_First_MultiRow_TopTable()
 
@@ -1296,29 +1724,31 @@ End Sub
 
 
 
-Function Get_First_NonEmpty_NonNumeric_Paragraph(TargetBookmark As Bookmark) As String
+Function Get_First_NonEmpty_NonNumeric_Paragraph(TargetDocument As Document, TargetBookmark As Bookmark) As String
 
 Dim tpar As Paragraph
 Dim realtext As String
 
-If ActiveDocument.Bookmarks.Count > 0 Then
-    If ActiveDocument.Bookmarks.Exists(TargetBookmark) Then
+If TargetDocument.Bookmarks.Count > 0 Then
+    If TargetDocument.Bookmarks.Exists(TargetBookmark) Then
         For Each tpar In TargetBookmark.Range.Paragraphs
-                       
-            ' Trying to remove all expectable non-printing characters, to retrieve text only as it were
-            realtext = tpar.Range.Text
-            realtext = Replace(Replace(Replace(realtext, vbCr, ""), vbLf, ""), vbCrLf, "")
-            realtext = Replace(Replace(Replace(realtext, Chr(12), ""), Chr(160), " "), "  ", " ")
-            realtext = Replace(Replace(Replace(realtext, Chr(10), ""), Chr(13), ""), Chr(7), "")
-            realtext = Replace(Replace(realtext, Chr(1), ""), Chr(13), "")
             
-            If realtext <> "" And realtext <> Chr(1) & "inceput" And _
-               (Not realtext Like "(#*#)" And Not realtext Like " ###*" And _
-               Not realtext Like "?top" And Not realtext Like "?(#*#)") Then
-                Get_First_NonEmpty_NonNumeric_Paragraph = realtext
-                Exit For
-            Else
+            If Not tpar.Range.Information(wdWithInTable) Then
+                ' Trying to remove all expectable non-printing characters, to retrieve text only as it were
+                realtext = tpar.Range.Text
+                realtext = Replace(Replace(Replace(realtext, vbCr, ""), vbLf, ""), vbCrLf, "")
+                realtext = Replace(Replace(Replace(realtext, Chr(12), ""), Chr(160), " "), "  ", " ")
+                realtext = Replace(Replace(Replace(realtext, Chr(10), ""), Chr(13), ""), Chr(7), "")
+                realtext = Replace(Replace(realtext, Chr(1), ""), Chr(13), "")
                 
+                If realtext <> "" And realtext <> Chr(1) & "inceput" And realtext <> " " And _
+                   (Not realtext Like "(#*#)" And Not realtext Like " ###*" And _
+                   Not realtext Like "?top" And Not realtext Like "?(#*#)" And _
+                   Not realtext Like "###") Then
+                        Get_First_NonEmpty_NonNumeric_Paragraph = realtext
+                        Exit For
+                Else
+                End If
             End If
             
         Next tpar
@@ -1337,7 +1767,7 @@ End Function
 Sub ExtractAll_NonEmpty_NonNumeric_FirstParagraphs_ToNewDoc()   ' Effectively, extract Index (contents table) texts (chapter's titles)
 
 Dim tbk As Bookmark
-Dim tdoc As Document
+Dim tDoc As Document
 Dim ctdoc As Document
 Dim counter As Integer
 
@@ -1354,13 +1784,13 @@ For j = 1 To trange.Bookmarks.Count
     If Left$(tbk.Name, 4) = "Fado" Then
         k = k + 1   ' Fado bookmarks index
         If k = 1 Then
-            Set tdoc = Documents.Add
+            Set tDoc = Documents.Add
             ctdoc.Activate
             
-            tdoc.Content.InsertAfter (Get_First_NonEmpty_NonNumeric_Paragraph(tbk)) & vbCr
+            tDoc.Content.InsertAfter (Get_First_NonEmpty_NonNumeric_Paragraph(ctdoc, tbk)) & vbCr
             counter = counter + 1
         Else
-            tdoc.Content.InsertAfter (Get_First_NonEmpty_NonNumeric_Paragraph(tbk)) & vbCr
+            tDoc.Content.InsertAfter (Get_First_NonEmpty_NonNumeric_Paragraph(ctdoc, tbk)) & vbCr
             counter = counter + 1
         End If
     End If
@@ -1416,181 +1846,6 @@ End If
 End Function
 
 
-Sub GetAll_MainIDs_ToNewDocument_Name()      ' GET BOOKMARKS IN NAME ORDER, POSITION SET ASIDE (FOR SITUATION WHEN THEY ARE ARRANGED IN NAME-ORDER)
-' More complete verions, extract chapter name, numeric ID & bookmark name
-
-Dim tbk As Bookmark
-Dim tdoc As Document
-Dim cdoc As Document
-Dim counter As Integer
-
-Dim k As Integer
-
-Dim trange As Range
-Set trange = ActiveDocument.StoryRanges(wdMainTextStory)
-
-Set cdoc = ActiveDocument
-
-If trange.Bookmarks.Count > 0 Then
-    For j = 1 To trange.Bookmarks.Count
-        
-        Set tbk = trange.Bookmarks(j)
-        
-        If Left$(tbk.Name, 5) = "Fado_" Then
-            k = k + 1       ' good bookmarks index
-            If k = 1 Then
-                Set tdoc = Documents.Add
-                cdoc.Activate
-                
-                tdoc.Content.InsertAfter ("Bkm " & tbk.Name & "   =   " & _
-                    Get_First_NonEmpty_NonNumeric_Paragraph(tbk) & "   " & vbTab & "-   ID " & Get_MainID_fromBookmark(tbk) & vbCr)
-                counter = counter + 1
-            Else
-                tdoc.Content.InsertAfter ("Bkm " & tbk.Name & "   =   " & _
-                    Get_First_NonEmpty_NonNumeric_Paragraph(tbk) & "   " & vbTab & "-   ID " & Get_MainID_fromBookmark(tbk) & vbCr)
-                counter = counter + 1
-            End If
-        End If
-        
-    Next j
-End If
-
-If counter > 0 Then
-    MsgBox "S-au gasit si extras " & counter & " main IDs"
-End If
-
-End Sub
-
-
-Sub Extract_AndList_AllHyperlinks()
-' Put into new document all fields of type hyperlink, list their sub-address
-
-Dim tbk As Bookmark
-Dim counter As Integer, bcounter As Integer, idx As Integer
-
-Dim sdoc As Document, tdoc As Document
-Set sdoc = ActiveDocument
-
-Dim thy As Hyperlink
-Dim ttb As Table
-
-Dim tsubs As String
-
-If ActiveDocument.Bookmarks.Count > 0 Then
-    For Each tbk In ActiveDocument.StoryRanges(wdMainTextStory).Bookmarks   ' accessing by range provides for ordered access
-        
-        If Left$(tbk.Name, 5) = "Fado_" Then    ' Process only the good hyperlinks
-        
-            If counter = 0 Then
-                idx = idx + 1
-                Set tdoc = Documents.Add: tdoc.Tables.Add tdoc.Paragraphs(1).Range, 1, 3: Set ttb = tdoc.Tables(1): sdoc.Activate
-                
-                ttb.Rows(1).Cells(1).Range.Text = "Main ID": ttb.Rows(1).Cells(2).Range.Text = "Chapter title": ttb.Rows(1).Cells(3).Range.Text = "Hyperlinks and targets"
-                
-                ttb.Rows.Add
-                ttb.Rows(2).Cells(1).Range.Text = Get_MainID_fromBookmark(tbk)
-                ttb.Rows(2).Cells(2).Range.Text = Get_First_NonEmpty_NonNumeric_Paragraph(tbk)
-                            
-                If tbk.Range.Hyperlinks.Count > 0 Then
-                        
-                    counter = counter + 1
-                    
-                    For Each thy In tbk.Range.Hyperlinks
-                        tsubs = tsubs & thy.SubAddress & vbTab
-                    Next thy
-                    
-                    ttb.Rows(2).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count & vbCr & tsubs
-                    tsubs = ""
-                                                    
-                Else
-                    bcounter = bcounter + 1
-                    ttb.Rows(2).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count
-                End If
-                
-            Else
-                idx = idx + 1
-                
-                ttb.Rows.Add
-                
-                ttb.Rows(ttb.Rows.Count).Cells(1).Range.Text = Get_MainID_fromBookmark(tbk)
-                ttb.Rows(ttb.Rows.Count).Cells(2).Range.Text = Get_First_NonEmpty_NonNumeric_Paragraph(tbk)
-                            
-                If tbk.Range.Hyperlinks.Count > 0 Then
-                        
-                    counter = counter + 1
-                    
-                    For Each thy In tbk.Range.Hyperlinks
-                        tsubs = tsubs & thy.SubAddress & vbTab
-                    Next thy
-                    
-                    ttb.Rows(ttb.Rows.Count).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count & vbCr & tsubs
-                    tsubs = ""
-                                                    
-                Else
-                    bcounter = bcounter + 1
-                    ttb.Rows(ttb.Rows.Count).Cells(3).Range.Text = "Hyperlinks: " & tbk.Range.Hyperlinks.Count
-                End If
-            
-            End If
-        
-        End If  ' If tbk.name este "Fado_###"
-        
-    Next tbk
-
-tdoc.SpellingChecked = True    ' Get rid of pesky red underlining
-
-End If
-
-
-If counter > 0 Then
-    If bcounter = 0 Then
-        MsgBox "S-au procesat " & counter & " bookmarkuri cu cel putin 1 hiperlinkuri"
-    Else
-        MsgBox "Au fost gasite " & bcounter & " bookmarkuri fara hiperlinkuri"
-    End If
-    
-End If
-
-End Sub
-
-
-Sub Build_Index_AtCursorPosition()
-' Builds the "manual" contents table of the document at cursor position,
-' by extracting chapters titles from bookmarks (Fado_###, # being digits)
-' Make sure such bookmarks exist and contain a chapter each before running this one
-
-Dim tbk As Bookmark
-Dim counter As Integer
-
-Dim trange As Range
-Set trange = ActiveDocument.StoryRanges(wdMainTextStory)
-
-If trange.Bookmarks.Count > 0 Then
-    For j = 1 To trange.Bookmarks.Count
-        
-        Set tbk = trange.Bookmarks(j)
-        
-        If Left$(tbk.Name, 5) = "Fado_" Then
-            
-            Selection.InsertAfter Get_First_NonEmpty_NonNumeric_Paragraph(tbk)     ' To create hyperlink, insert text first
-            ActiveDocument.Hyperlinks.Add Selection.Range, , "_" & _
-                Replace(Get_MainID_fromBookmark(tbk), Chr(160), ""), , Selection.Text
-            Selection.InsertAfter vbCr: Selection.Collapse (wdCollapseEnd)
-            
-            'selection.InsertAfter (Get_First_NonEmpty_NonNumeric_Paragraph(tbk) & Get_MainID_fromBookmark(tbk) & vbCr)
-            counter = counter + 1
-        
-        End If
-        
-    Next j
-End If
-
-If counter > 0 Then
-    MsgBox "S-au inserat " & counter & " intrari in Index !"
-End If
-
-
-End Sub
 
 Sub All_MainIDs_ToHeading1_Style()
 
@@ -1642,6 +1897,7 @@ End If
 
 End Sub
 
+
 Sub CurrentSelection_CrossRef_Add()
 
 Dim tg As Range
@@ -1660,9 +1916,8 @@ If tg.Hyperlinks.Count > 0 Then
 
 End If
 
-
-
 End Sub
+
 
 Sub Replace_WrongSubAdress_to000_inAllHyperLinks(CurrentWrongAdress As String)
 ' Change all top links from tables to correct target, "_000"
@@ -1693,6 +1948,7 @@ End If
 MsgBox "Changed " & counter & " hyperlinks to point to _000 bookmark target!", vbOKOnly, "Done!"
 
 End Sub
+
 
 Sub Remove_1_from_AllHyperlinks()
 ' In current document, no "_###_1" bookmarks have been used/ set.
@@ -2296,6 +2552,115 @@ End With
 
 
 End Sub
+
+
+Function Get_All_Hidden_IDBookmarks(TargetDocument As Document) As String()
+' Bookmarks "_###" and "_(###)
+
+If TargetDocument.Hyperlinks.Count > 0 Then
+    
+    Dim ctBkm As Bookmark
+    
+    Dim tmpArray() As String
+    
+    Dim k As Integer
+    Let k = 0
+    
+    For Each ctBkm In TargetDocument.Bookmarks
+        
+        If Left(ctBkm.Name, 1) = "_" And IsNumeric(Mid(ctBkm.Name, 2, 1)) Then
+            k = k + 1
+            ReDim Preserve tmpArray(k - 1)
+            tmpArray(UBound(tmpArray)) = ctBkm.Name
+        End If
+        
+    Next ctBkm
+    
+    Get_All_Hidden_IDBookmarks = tmpArray
+    
+Else
+    Get_All_Hidden_IDBookmarks = Null
+End If
+
+
+End Function
+
+
+Function Get_IDs_Bookmarks_LocationCheck(TargetDocument As Document) As String()
+
+
+Dim allID_Bookmarks() As String
+
+allID_Bookmarks = Get_All_Hidden_IDBookmarks(TargetDocument)
+
+
+Dim tmpResult() As String
+
+Dim k As Integer
+k = 0
+
+For i = 0 To UBound(allID_Bookmarks)
+    
+    Dim ctBkmRng As Range
+    
+    Set ctBkmRng = TargetDocument.Bookmarks(allID_Bookmarks(i)).Range
+    
+    ' Majority of bookmarks will be empty, placed in front of chapter number
+    'If ctBkmRng.Characters.Count = 0 Then
+    
+        ctBkmRng.MoveEndUntil (vbCr)
+        
+    'End If
+    
+    
+    Dim ctBkmRngText As String
+    
+    ctBkmRngText = ctBkmRng.Text
+    
+    ctBkmRngText = Replace(Replace(Replace(ctBkmRngText, "(", ""), ")", ""), Chr(160), "")
+    ctBkmRngText = Replace(ctBkmRngText, " ", "")
+    
+    
+    ' need to take into account that bkm name begins with an extra "_" and that some
+    ' bkms even have an extra "_1" at the end !
+    Dim ctBkmNameEssential As String
+    
+    ctBkmNameEssential = allID_Bookmarks(i)
+    
+    
+    If Right(ctBkmNameEssential, 2) = "_1" Then
+        
+        ' multiple "_", beginning and near end
+        ctBkmNameEssential = Replace(Left(allID_Bookmarks(i), Len(allID_Bookmarks(i)) - 2), "_", "")
+        
+        
+    Else
+        ' one "_" only, beginning
+        ctBkmNameEssential = Replace(allID_Bookmarks(i), "_", "")
+        
+    End If
+    
+    
+    If ctBkmRngText <> ctBkmNameEssential Then
+        k = k + 1
+        ReDim Preserve tmpResult(k - 1)
+        tmpResult(UBound(tmpResult)) = allID_Bookmarks(i)
+    End If
+    
+    
+Next i
+
+Get_IDs_Bookmarks_LocationCheck = tmpResult
+
+
+End Function
+
+
+
+
+
+End Sub
+
 
 '
 ' **********************************************************************************************************
