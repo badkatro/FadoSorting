@@ -2,7 +2,7 @@
 ## VBA Module: **[FadoSorting](/scripts/FadoSorting.vba "source is here")**
 ### Type: StdModule  
 
-This procedure list for repo (FadoSorting) was automatically created on 15/05/2017 19:14:19 by VBAGit.
+This procedure list for repo (FadoSorting) was automatically created on 17/05/2017 19:11:08 by VBAGit.
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation")
 
 Below is a section for each procedure in FadoSorting
@@ -57,6 +57,73 @@ Scope: **Public**
 Description: ****  
 
 *Sub Master_Sort_TargetDoc_forAlignment_FadoGlossary()*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **GetAll_MainIDs_ToNewDocument_Name**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub GetAll_MainIDs_ToNewDocument_Name()*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **Extract_abdCheck_All_CrossReferences**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Extract_abdCheck_All_CrossReferences()*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **Get_All_IDs_andHyperlinks**  
+Type: **Function**  
+Returns: **Variant**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Get_All_IDs_andHyperlinks(TargetDocument As Document) As String()*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Extract_AndList_AllHyperlinks**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Extract_AndList_AllHyperlinks()*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **All_IDs_Bookmarks_LocationCheck_CtDoc**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub All_IDs_Bookmarks_LocationCheck_CtDoc()*  
 
 **no arguments required for this procedure**
 
@@ -332,6 +399,19 @@ Description: ****
 
 
 ---
+VBA Procedure: **Gray_All_GoodTopTables**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Gray_All_GoodTopTables()*  
+
+**no arguments required for this procedure**
+
+
+---
 VBA Procedure: **Identify_First_MultiRow_TopTable**  
 Type: **Sub**  
 Returns: **void**  
@@ -529,10 +609,11 @@ Return description: ****
 Scope: **Public**  
 Description: ****  
 
-*Function Get_First_NonEmpty_NonNumeric_Paragraph(TargetBookmark As Bookmark) As String*  
+*Function Get_First_NonEmpty_NonNumeric_Paragraph(TargetDocument As Document, TargetBookmark As Bookmark) As String*  
 
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
+TargetDocument|Document|False||
 TargetBookmark|Bookmark|False||
 
 
@@ -563,45 +644,6 @@ Description: ****
 ---|---|---|---|---
 TargetDocument|Document|False||
 TargetBookmark|Bookmark|False||
-
-
----
-VBA Procedure: **GetAll_MainIDs_ToNewDocument_Name**  
-Type: **Sub**  
-Returns: **void**  
-Return description: ****  
-Scope: **Public**  
-Description: ****  
-
-*Sub GetAll_MainIDs_ToNewDocument_Name()*  
-
-**no arguments required for this procedure**
-
-
----
-VBA Procedure: **Extract_AndList_AllHyperlinks**  
-Type: **Sub**  
-Returns: **void**  
-Return description: ****  
-Scope: **Public**  
-Description: ****  
-
-*Sub Extract_AndList_AllHyperlinks()*  
-
-**no arguments required for this procedure**
-
-
----
-VBA Procedure: **Build_Index_AtCursorPosition**  
-Type: **Sub**  
-Returns: **void**  
-Return description: ****  
-Scope: **Public**  
-Description: ****  
-
-*Sub Build_Index_AtCursorPosition()*  
-
-**no arguments required for this procedure**
 
 
 ---
@@ -1132,6 +1174,36 @@ Scope: **Public**
 Description: ****  
 
 *Sub RemoveAll_PagebreakBefores(TargetDocument As Document)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Get_All_Hidden_IDBookmarks**  
+Type: **Function**  
+Returns: **Variant**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Get_All_Hidden_IDBookmarks(TargetDocument As Document) As String()*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Get_IDs_Bookmarks_LocationCheck**  
+Type: **Function**  
+Returns: **Variant**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Get_IDs_Bookmarks_LocationCheck(TargetDocument As Document) As String()*  
 
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
