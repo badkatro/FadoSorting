@@ -2,7 +2,7 @@
 ## VBA Module: **[FadoSorting](/scripts/FadoSorting.vba "source is here")**
 ### Type: StdModule  
 
-This procedure list for repo (FadoSorting) was automatically created on 17/05/2017 19:11:08 by VBAGit.
+This procedure list for repo (FadoSorting) was automatically created on 18/05/2017 18:32:41 by VBAGit.
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation")
 
 Below is a section for each procedure in FadoSorting
@@ -75,16 +75,47 @@ Description: ****
 
 
 ---
-VBA Procedure: **Extract_abdCheck_All_CrossReferences**  
+VBA Procedure: **Extract_andCheck_All_CrossReferences**  
 Type: **Sub**  
 Returns: **void**  
 Return description: ****  
 Scope: **Public**  
 Description: ****  
 
-*Sub Extract_abdCheck_All_CrossReferences()*  
+*Sub Extract_andCheck_All_CrossReferences()*  
 
 **no arguments required for this procedure**
+
+
+---
+VBA Procedure: **Get_SeparatedString_Differences**  
+Type: **Function**  
+Returns: **String**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Get_SeparatedString_Differences(SourceString1, SourceString2) As String*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+SourceString1|Variant|False||
+SourceString2|Variant|False||
+
+
+---
+VBA Procedure: **Create_ComparativeDocument**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Create_ComparativeDocument(Content)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+Content|Variant|False||
 
 
 ---
@@ -96,6 +127,21 @@ Scope: **Public**
 Description: ****  
 
 *Function Get_All_IDs_andHyperlinks(TargetDocument As Document) As String()*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Get_All_IDs_andHyperlinks_V**  
+Type: **Function**  
+Returns: **Variant**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Get_All_IDs_andHyperlinks_V(TargetDocument As Document) As String()*  
 
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
@@ -1208,3 +1254,38 @@ Description: ****
 *name*|*type*|*optional*|*default*|*description*
 ---|---|---|---|---
 TargetDocument|Document|False||
+
+
+---
+VBA Procedure: **Sort_2D_Array**  
+Type: **Function**  
+Returns: **Variant**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Function Sort_2D_Array(ByVal ArrayToSort As Variant, Optional SortDescending, Optional SortBySecondDimension) As Variant*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+ByVal|Variant|False||
+SortDescending|Variant|True||
+SortBySecondDimension|Variant|True||
+
+
+---
+VBA Procedure: **QuickSortArray**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Public Sub QuickSortArray(ByRef SortArray As Variant, Optional lngMin As Long = -1, Optional lngMax As Long = -1, Optional lngColumn As Long = 0)*  
+
+*name*|*type*|*optional*|*default*|*description*
+---|---|---|---|---
+ByRef|Variant|False||
+lngMin|Long|True| -1|
+lngMax|Long|True| -1|
+lngColumn|Long|True| 0|
