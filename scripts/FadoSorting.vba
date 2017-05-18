@@ -233,18 +233,18 @@ End If
 
 End Sub
 
+
 ' Main routine to check cross-references, it is similar to Extract_AndList_AllHyperlinks, but it does not present the result in a comparative
 ' table as the other one, where user will have to manually look for eroneous cross-refs.
 
 ' This one does same, but for 2 opened documents, original and translation (source and target languages) and eliminates by itself unneeded results...
 ' presenting to user only useful results: the wrong hyperlinks !
-Sub Extract_abdCheck_All_CrossReferences()
-
+Sub Extract_andCheck_All_CrossReferences()
 
 Dim sDoc As Document, tDoc As Document
 
 If Documents.Count <> 2 Then
-    MsgBox "Please open at least 2 documents for hyperlink data comparison, source and target languages!"
+    MsgBox "Please open only 2 documents for hyperlink data comparison, source and target languages!"
     Exit Sub
 End If
 
@@ -258,7 +258,7 @@ Else
 End If
 
 
-If MsgBox("Shall we proceed with source document as " & sDoc.Name & " and target as " & tDoc & " ?", vbYesNo + vbQuestion) = vbNo Then
+If MsgBox("Shall we proceed with source document as " & vbCr & vbCr & sDoc.Name & vbCr & vbCr & "   and target as " & vbCr & vbCr & tDoc & " ?", vbYesNo + vbQuestion) = vbNo Then
     StatusBar = "Extract_abdCheck_All_CrossReferences: Wrong documents, Quitting..."
     Exit Sub
 End If
@@ -268,8 +268,8 @@ End If
 Dim sourceIDs_and_Hypers
 Dim targetIDs_and_Hypers
 
-sourceIDs_and_Hypers = Get_All_IDs_andHyperlinks(sDoc)
-targetIDs_and_Hypers = Get_All_IDs_andHyperlinks(tDoc)
+sourceIDs_and_Hypers = Get_All_IDs_andHyperlinks_V(sDoc)    ' Vertical version, first dimension is not categories of info, but objects number!
+targetIDs_and_Hypers = Get_All_IDs_andHyperlinks_V(tDoc)
 
 
 If UBound(sourceIDs_and_Hypers, 2) <> UBound(targetIDs_and_Hypers, 2) Then
@@ -278,8 +278,74 @@ If UBound(sourceIDs_and_Hypers, 2) <> UBound(targetIDs_and_Hypers, 2) Then
     Exit Sub
 End If
 
-Debug.Print "Extracted from " & ActiveDocument.Name & " IDInfos for " & UBound(IDs_and_Hypers, 2) & " Fado bookmarks!"
+Debug.Print "Extracted from " & ActiveDocument.Name & " IDInfos for " & UBound(sourceIDs_and_Hypers, 2) & " Fado bookmarks!"
 
+
+Dim sSourceIDs_and_Hypers
+Dim sTargetIDs_and_Hypers
+
+
+sSourceIDs_and_Hypers = Sort_2D_Array(sourceIDs_and_Hypers)
+sTargetIDs_and_Hypers = Sort_2D_Array(targetIDs_and_Hypers)
+
+' The other function also works, call it as such to sort for column 0 (first)
+'Call QuickSortArray(sourceIDs_and_Hypers, , , 0)
+'Call QuickSortArray(targetIDs_and_Hypers, , , 0)
+
+'sSourceIDs_and_Hypers = sourceIDs_and_Hypers
+'sTargetIDs_and_Hypers = targetIDs_and_Hypers
+
+' Not needed anymore, take up memory space
+ReDim sourceIDs_and_Hypers(0, 0)
+ReDim targetIDs_and_Hypers(0, 0)
+
+Dim tobeCheckedChapters() As String
+Dim k As Integer
+Dim wrongIDChapters As String
+
+
+For i = 0 To UBound(sSourceIDs_and_Hypers)
+    
+    'Debug.Assert (i < 29)
+    
+    If sSourceIDs_and_Hypers(i, 0) = sTargetIDs_and_Hypers(i, 0) Then
+        
+        If sSourceIDs_and_Hypers(i, 1) <> sTargetIDs_and_Hypers(i, 1) Or _
+           Get_SeparatedString_Differences(sTargetIDs_and_Hypers(i, 2), sSourceIDs_and_Hypers(i, 2)) <> "" Then
+            
+            k = k + 1
+            
+            ReDim Preserve tobeCheckedChapters(2, k - 1)
+            
+            tobeCheckedChapters(0, k - 1) = sSourceIDs_and_Hypers(i, 0)
+            tobeCheckedChapters(1, k - 1) = sTargetIDs_and_Hypers(i, 1) - sSourceIDs_and_Hypers(i, 1)
+            
+            If Get_SeparatedString_Differences(sTargetIDs_and_Hypers(i, 2), sSourceIDs_and_Hypers(i, 2)) <> "" Then
+                tobeCheckedChapters(2, k - 1) = Get_SeparatedString_Differences(sTargetIDs_and_Hypers(i, 2), sSourceIDs_and_Hypers(i, 2))
+            End If
+        
+        End If
+        
+        
+    Else
+        wrongIDChapters = IIf(wrongIDChapters = "", sTargetIDs_and_Hypers(i, 0) & "(" & sSourceIDs_and_Hypers(i, 0) & ")", _
+            wrongIDChapters & "," & sTargetIDs_and_Hypers(i, 0) & "(" & sSourceIDs_and_Hypers(i, 0) & ")")
+    End If
+    
+Next i
+
+
+If wrongIDChapters <> "" Then
+    MsgBox "We have identified following wrongly ID'd chapters: " & wrongIDChapters
+End If
+
+
+If k <> 0 Then
+    MsgBox "Found " & k & " chapters with hyperlinks differences in numbers and or target content!"
+    Call Create_ComparativeDocument(tobeCheckedChapters)
+Else
+    MsgBox "Found NO hyperlink differences in numbers or target content in ALL chapters!"
+End If
 
 
 
@@ -298,6 +364,148 @@ Debug.Print "Extracted from " & ActiveDocument.Name & " IDInfos for " & UBound(I
 
 End Sub
 
+
+Function Get_SeparatedString_Differences(SourceString1, SourceString2) As String
+' Hard-coded pipe separator for now ("|")
+' Source1 string parameter is always target (the one we need checked against the source)
+' Source2 is always source (the supposedly correct one... the model)
+
+If InStr(1, SourceString1, "|") > 0 And InStr(1, SourceString2, "|") > 0 Then
+    
+    Dim str1Arr
+    Dim str2Arr
+    
+    str1Arr = Split(SourceString1, "|")     ' TARGET
+    str2Arr = Split(SourceString2, "|")     ' SOURCE
+    
+    If UBound(str1Arr) <> UBound(str2Arr) Then
+        
+        'Get_SeparatedString_Differences = ""
+        'Debug.Print "Get_SeparatedString_Differences: Input string parameters supplied to function have different length - please check !"
+        'Exit Function
+        Dim difHypNum As Boolean
+        difHypNum = True       ' logical flag, represents diff hyp num in source-target
+        
+    End If
+    
+    
+    Dim tmpStrResult As String
+        
+    ' Decide max upper limit, which array is smaller... unsafe to go otherwise!
+    If difHypNum Then
+        
+       Dim maxU As Integer
+       maxU = IIf(UBound(str1Arr) < UBound(str2Arr), UBound(str1Arr), UBound(str2Arr))
+        
+    Else
+        
+        maxU = UBound(str1Arr)
+        
+    End If
+    
+    
+    ' Now compare and gather only incorrect hyperlinks sub-addresses!
+    For i = 0 To maxU
+    
+        ' str1Arr = target, str2Arr = source
+        If (str1Arr(i) <> str2Arr(i)) And Not (str2Arr(i) & "_1" <> str1Arr(i) Or str1Arr(i) & "_1" <> str2Arr(i)) Then
+        
+            tmpStrResult = IIf(tmpStrResult = "", str1Arr(i) & "[" & str2Arr(i) & "]", tmpStrResult & " | " & str1Arr(i) & "[" & str2Arr(i) & "]")      ' Unified format, we signal to the user the wrong string (str1Arr(i)) against the correct one, between "[]"s - strArr2(i)
+        
+        End If
+    
+    Next i
+    
+    ' we also need go through the rest of the longer array, if number differs, to signal the extra/ missing elements!
+    If difHypNum Then
+        
+        ' Arr1 smaller than Arr2
+        If UBound(str1Arr) < UBound(str2Arr) Then
+            
+            For j = UBound(str1Arr) + 1 To UBound(str2Arr)
+                ' Insert extra elements in source
+                tmpStrResult = IIf(tmpStrResult = "", Chr(215) & "[" & str2Arr(j) & "]", tmpStrResult & " | " & Chr(215) & "[" & str2Arr(j) & "]")     ' x multiplication sign stands for nothing
+            Next j
+            
+        Else    ' Inverse, Arr2 is smaller than Arr1
+            
+            ' Insert extra elements in target !
+            For j = UBound(str2Arr) + 1 To UBound(str1Arr)
+                tmpStrResult = IIf(tmpStrResult = "", str1Arr(j) & "[]", tmpStrResult & " | " & str1Arr(j) & "[]")
+            Next j
+            
+        End If
+        
+    End If
+    
+    
+Else
+    Get_SeparatedString_Differences = ""
+    Exit Function
+End If
+
+Get_SeparatedString_Differences = tmpStrResult
+
+
+End Function
+
+
+Sub Create_ComparativeDocument(Content)         ' Content is actually a bi-dimensional array, first dimension being data categories (table columns)
+
+' Sanity checks
+If Not IsArray(Content) Then StatusBar = "Create_ComparativeDocument: Supplied parameter NOT ARRAY!": Exit Sub
+' Supplied content array needs first dimension to be three-fold: mainID, number of hypers, hyper sub-addresses content differences ! (these are the data catefories, the tables' columns - headers even)
+If Not UBound(Content) = 2 Then StatusBar = "Create_ComparativeDocument: Supplied content array parameter NOT 3 arms!": Exit Sub
+
+
+
+Dim resultDoc As Document
+
+Set resultDoc = Documents.Add
+
+
+Dim resultTable As Table
+
+Set resultTable = resultDoc.Tables.Add(resultDoc.StoryRanges(wdMainTextStory), 1, 3)
+
+
+' widen table
+resultTable.PreferredWidthType = wdPreferredWidthPercent: resultTable.PreferredWidth = 100
+resultTable.Columns(1).PreferredWidthType = wdPreferredWidthPercent: resultTable.Columns(2).PreferredWidthType = wdPreferredWidthPercent: resultTable.Columns(3).PreferredWidthType = wdPreferredWidthPercent
+resultTable.Columns(1).PreferredWidth = 13: resultTable.Columns(2).PreferredWidth = 22: resultTable.Columns(3).PreferredWidth = 65
+
+
+resultTable.Rows(1).Cells(1).Range.Text = "Main ID"
+resultTable.Rows(1).Cells(2).Range.Text = "Hyperlinks Count Difference"
+resultTable.Rows(1).Cells(3).Range.Text = "Hyperlink targets differences (source in [])"
+
+
+For i = 0 To UBound(Content, 2)
+    
+    resultTable.Rows.Add
+    
+    resultTable.Rows(i + 2).Cells(1).Range.Text = Content(0, i)
+    resultTable.Rows(i + 2).Cells(2).Range.Text = Content(1, i)
+    resultTable.Rows(i + 2).Cells(3).Range.Text = Content(2, i)
+    
+Next i
+
+With resultTable
+
+    .Borders.InsideLineStyle = wdLineStyleSingle: .Borders.OutsideLineStyle = wdLineStyleSingle
+    .Borders.InsideLineWidth = wdLineWidth025pt: .Borders.OutsideLineWidth = wdLineWidth025pt
+    .Borders.InsideColorIndex = wdGray25: .Borders.OutsideColorIndex = wdGray25
+
+
+    .Borders(wdBorderHorizontal).Visible = True: .Borders(wdBorderVertical).Visible = False
+    .Borders(wdBorderLeft).Visible = False: .Borders(wdBorderRight).Visible = False
+    .Borders(wdBorderTop).Visible = True: .Borders(wdBorderBottom).Visible = True
+
+End With
+
+End Sub
+
+
 ' Identical to but does not present results in a Word doc table, returns bidimensional array instead
 Function Get_All_IDs_andHyperlinks(TargetDocument As Document) As String()
 
@@ -310,6 +518,9 @@ Set sDoc = TargetDocument
 
 Dim thy As Hyperlink
 Dim ttb As Table
+
+
+
 
 
 Dim tmpResults() As String
@@ -402,16 +613,130 @@ If sDoc.Bookmarks.Count > 0 Then
 End If
 
 
-'If counter > 0 Then     ' counted bkms with hypers
-'    If bcounter = 0 Then
-'        MsgBox "S-au procesat " & counter & " bookmarkuri cu cel putin 1 hiperlinkuri"
-'    Else
-'        MsgBox "Au fost gasite " & bcounter & " bookmarkuri fara hiperlinkuri"
-'    End If
-'Else
-'End If
-
 Get_All_IDs_andHyperlinks = tmpResults
+
+End Function
+
+' Identical to but does not present results in a Word doc table, returns bidimensional array instead
+' VERTICAL version of the above, main dimension is NOT number of categories of information, but actual "objects" number...
+' CHAPTERS info in this case !
+Function Get_All_IDs_andHyperlinks_V(TargetDocument As Document) As String()
+
+
+Dim tbk As Bookmark
+Dim counter As Integer, bcounter As Integer, idx As Integer
+
+
+Dim sDoc As Document
+Set sDoc = TargetDocument
+
+Dim thy As Hyperlink
+Dim ttb As Table
+
+
+Dim chaptersNumber
+chaptersNumber = Count_TopTables(TargetDocument) - 1    ' TOP tables are always one more than bookmarks
+
+
+Dim tmpResults() As String
+
+
+If sDoc.Bookmarks.Count > 0 Then
+
+    For Each tbk In sDoc.StoryRanges(wdMainTextStory).Bookmarks   ' accessing by range provides for ordered access
+        
+        If Left$(tbk.Name, 5) = "Fado_" Then    ' Process only the good hyperlinks
+            
+            ' Om first FADO bookmark, initialize everything
+            If counter = 0 Then
+                
+                ' counting FADO bookmarks
+                idx = idx + 1
+                
+                ' bi-dimensional array returned, first dimension is actual chapters themselves, second dimension represents info saught for each chapter, namely
+                ' main ID, Hyperlink number and hyperlinks sub-address info (pipe-separated string)
+                ReDim tmpResults(chaptersNumber - 1, 2)
+                
+                
+                tmpResults(0, 0) = Get_MainID_fromBookmark(sDoc, tbk)
+                ' DONT return chapter title in this ? !? Useful ?
+                'Get_First_NonEmpty_NonNumeric_Paragraph(sdoc, tbk)
+                            
+                If tbk.Range.Hyperlinks.Count > 0 Then
+                    
+                    ' Counting FADO bookmarks with hypers
+                    counter = counter + 1
+                    
+                    ' store current bookmarks hyperlinks number in second dimension of temp array
+                    tmpResults(0, 1) = tbk.Range.Hyperlinks.Count
+                    
+                    
+                    Dim tmpHypSubInfo As String
+                    
+                    ' take into account normal hypers also, with web or mail address instead of sub-address !
+                    For Each thy In tbk.Range.Hyperlinks
+                        If thy.SubAddress <> "" Then    ' cross-reference
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.SubAddress, tmpHypSubInfo & "|" & thy.SubAddress)   ' make a pipe-separated string with all sub-addresses of all hyps in range
+                        Else    ' normal hyperlink, web or mail
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.Address, tmpHypSubInfo & "|" & thy.Address)
+                        End If
+                    Next thy
+                    
+                    
+                    tmpResults(0, 2) = tmpHypSubInfo
+                    tmpHypSubInfo = ""
+                    
+                    
+                Else    ' No hyperlinks subaddresses to gather, there are none !
+                    bcounter = bcounter + 1
+                    tmpResults(0, 1) = tbk.Range.Hyperlinks.Count
+                End If
+                
+            Else    ' Second and all other passes
+                
+                ' Counting FADO bookmarks
+                idx = idx + 1
+                
+                ' Array already dimensioned, no need to add extra "row" all the time !
+                'ReDim Preserve tmpResults(idx - 1, 2)
+                                
+                tmpResults(idx - 1, 0) = Get_MainID_fromBookmark(sDoc, tbk)
+                
+                If tbk.Range.Hyperlinks.Count > 0 Then
+                        
+                    ' Counting FADO bkms with hypers
+                    counter = counter + 1
+                    
+                    tmpResults(idx - 1, 1) = tbk.Range.Hyperlinks.Count
+                    
+                    For Each thy In tbk.Range.Hyperlinks
+                        If thy.SubAddress <> "" Then    ' cross-reference
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.SubAddress, tmpHypSubInfo & "|" & thy.SubAddress)   ' make a pipe-separated string with all sub-addresses of all hyps in range
+                        Else    ' normal hyperlink, web or mail
+                            tmpHypSubInfo = IIf(tmpHypSubInfo = "", thy.Address, tmpHypSubInfo & "|" & thy.Address)
+                        End If
+                    Next thy
+                    
+                    tmpResults(idx - 1, 2) = tmpHypSubInfo
+                    tmpHypSubInfo = ""
+                                                    
+                Else    ' no hypers in current bkm
+                
+                    bcounter = bcounter + 1
+                    tmpResults(idx - 1, 1) = tbk.Range.Hyperlinks.Count
+                    
+                End If
+            
+            End If
+        
+        End If  ' If tbk.name este "Fado_###"
+        
+    Next tbk
+
+End If
+
+
+Get_All_IDs_andHyperlinks_V = tmpResults
 
 End Function
 
@@ -2661,6 +2986,203 @@ End Function
 
 End Sub
 
+Function Sort_2D_Array(ByVal ArrayToSort As Variant, Optional SortDescending, Optional SortBySecondDimension) As Variant
+         
+    Dim tmpArray    ' to use during work
+    tmpArray = ArrayToSort
+    
+    'Dim tmpArray(5, 2) As Variant
+    'Dim v As Variant
+    Dim i As Integer, j As Integer
+    Dim r As Integer, c As Integer
+    Dim temp As Variant
+     
+     'Create 2-dimensional array
+     
+'    v = Array(56, 22, "xyz", 22, 30, "zyz", 56, 30, "zxz", 22, 30, "zxz", 10, 18, "zzz", 22, 18, "zxx")
+'    For i = 0 To UBound(v)
+'        tmpArray(i \ 3, i Mod 3) = v(i)
+'    Next
+    
+    Debug.Print "Unsorted array:"
+    For r = LBound(tmpArray) To UBound(tmpArray)
+        For c = LBound(tmpArray, 2) To UBound(tmpArray, 2)
+            Debug.Print tmpArray(r, c);
+        Next
+        Debug.Print
+    Next
+    
+    
+     'Bubble sort column 0
+    
+    If IsMissing(SortDescending) Then
+        ' Ascending
+        For i = LBound(tmpArray) To UBound(tmpArray) - 1
+            For j = i + 1 To UBound(tmpArray)
+                If tmpArray(i, 0) > tmpArray(j, 0) Then
+                    For c = LBound(tmpArray, 2) To UBound(tmpArray, 2)
+                        temp = tmpArray(i, c)
+                        tmpArray(i, c) = tmpArray(j, c)
+                        tmpArray(j, c) = temp
+                    Next
+                End If
+            Next
+        Next
+    Else     ' Descending
+        For i = LBound(tmpArray) To UBound(tmpArray) - 1
+            For j = i + 1 To UBound(tmpArray)
+                If tmpArray(i, 0) < tmpArray(j, 0) Then
+                    For c = LBound(tmpArray, 2) To UBound(tmpArray, 2)
+                        temp = tmpArray(i, c)
+                        tmpArray(i, c) = tmpArray(j, c)
+                        tmpArray(j, c) = temp
+                    Next
+                End If
+            Next
+        Next
+    End If
+     
+    
+    If Not IsMissing(SortBySecondDimension) Then
+        'Bubble sort column 1, where adjacent rows in column 0 are equal
+        If IsMissing(SortDescending) Then
+            ' Ascending
+            For i = LBound(tmpArray) To UBound(tmpArray) - 1
+                For j = i + 1 To UBound(tmpArray)
+                    If tmpArray(i, 0) = tmpArray(j, 0) Then
+                        If tmpArray(i, 1) > tmpArray(j, 1) Then
+                            For c = LBound(tmpArray, 2) To UBound(tmpArray, 2)
+                                temp = tmpArray(i, c)
+                                tmpArray(i, c) = tmpArray(j, c)
+                                tmpArray(j, c) = temp
+                            Next
+                        End If
+                    End If
+                Next
+            Next
+         Else    ' Descending
+            For i = LBound(tmpArray) To UBound(tmpArray) - 1
+                For j = i + 1 To UBound(tmpArray)
+                    If tmpArray(i, 0) = tmpArray(j, 0) Then
+                        If tmpArray(i, 1) < tmpArray(j, 1) Then
+                            For c = LBound(tmpArray, 2) To UBound(tmpArray, 2)
+                                temp = tmpArray(i, c)
+                                tmpArray(i, c) = tmpArray(j, c)
+                                tmpArray(j, c) = temp
+                            Next
+                        End If
+                    End If
+                Next
+            Next
+         End If
+    End If
+     
+     'Output sorted array
+'    Debug.Print "Sorted array:"
+'    For r = LBound(tmpArray) To UBound(tmpArray)
+'        For c = LBound(tmpArray, 2) To UBound(tmpArray, 2)
+'            Debug.Print tmpArray(r, c);
+'        Next
+'        Debug.Print
+'    Next
+    
+    Sort_2D_Array = tmpArray
+    
+End Function
+
+Public Sub QuickSortArray(ByRef SortArray As Variant, Optional lngMin As Long = -1, Optional lngMax As Long = -1, Optional lngColumn As Long = 0)
+    On Error Resume Next
+
+    'Sort a 2-Dimensional array
+
+    ' SampleUsage: sort arrData by the contents of column 3
+    '
+    '   QuickSortArray arrData, , , 3
+
+    '
+    'Posted by Jim Rech 10/20/98 Excel.Programming
+
+    'Modifications, Nigel Heffernan:
+
+    '       ' Escape failed comparison with empty variant
+    '       ' Defensive coding: check inputs
+
+    Dim i As Long
+    Dim j As Long
+    Dim varMid As Variant
+    Dim arrRowTemp As Variant
+    Dim lngColTemp As Long
+
+    If IsEmpty(SortArray) Then
+        Exit Sub
+    End If
+    If InStr(TypeName(SortArray), "()") < 1 Then  'IsArray() is somewhat broken: Look for brackets in the type name
+        Exit Sub
+    End If
+    If lngMin = -1 Then
+        lngMin = LBound(SortArray, 1)
+    End If
+    If lngMax = -1 Then
+        lngMax = UBound(SortArray, 1)
+    End If
+    If lngMin >= lngMax Then    ' no sorting required
+        Exit Sub
+    End If
+
+    i = lngMin
+    j = lngMax
+
+    varMid = Empty
+    varMid = SortArray((lngMin + lngMax) \ 2, lngColumn)
+
+    ' We  send 'Empty' and invalid data items to the end of the list:
+    If IsObject(varMid) Then  ' note that we don't check isObject(SortArray(n)) - varMid *might* pick up a valid default member or property
+        i = lngMax
+        j = lngMin
+    ElseIf IsEmpty(varMid) Then
+        i = lngMax
+        j = lngMin
+    ElseIf IsNull(varMid) Then
+        i = lngMax
+        j = lngMin
+    ElseIf varMid = "" Then
+        i = lngMax
+        j = lngMin
+    ElseIf VarType(varMid) = vbError Then
+        i = lngMax
+        j = lngMin
+    ElseIf VarType(varMid) > 17 Then
+        i = lngMax
+        j = lngMin
+    End If
+
+    While i <= j
+        While SortArray(i, lngColumn) < varMid And i < lngMax
+            i = i + 1
+        Wend
+        While varMid < SortArray(j, lngColumn) And j > lngMin
+            j = j - 1
+        Wend
+
+        If i <= j Then
+            ' Swap the rows
+            ReDim arrRowTemp(LBound(SortArray, 2) To UBound(SortArray, 2))
+            For lngColTemp = LBound(SortArray, 2) To UBound(SortArray, 2)
+                arrRowTemp(lngColTemp) = SortArray(i, lngColTemp)
+                SortArray(i, lngColTemp) = SortArray(j, lngColTemp)
+                SortArray(j, lngColTemp) = arrRowTemp(lngColTemp)
+            Next lngColTemp
+            Erase arrRowTemp
+
+            i = i + 1
+            j = j - 1
+        End If
+    Wend
+
+    If (lngMin < j) Then Call QuickSortArray(SortArray, lngMin, j, lngColumn)
+    If (i < lngMax) Then Call QuickSortArray(SortArray, i, lngMax, lngColumn)
+
+End Sub
 
 '
 ' **********************************************************************************************************
