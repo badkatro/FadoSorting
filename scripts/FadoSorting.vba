@@ -520,9 +520,6 @@ Dim thy As Hyperlink
 Dim ttb As Table
 
 
-
-
-
 Dim tmpResults() As String
 
 If sDoc.Bookmarks.Count > 0 Then
@@ -853,6 +850,8 @@ If Not IsNotDimensionedArr(tmpResult) Then
 Else
     MsgBox "All ID Bookmarks location check OK !"
 End If
+
+End Sub
 
 Sub Build_Index_AtCursorPosition()
 ' Builds the "manual" contents table of the document at cursor position,
@@ -2883,7 +2882,9 @@ Function Get_All_Hidden_IDBookmarks(TargetDocument As Document) As String()
 ' Bookmarks "_###" and "_(###)
 
 If TargetDocument.Hyperlinks.Count > 0 Then
-    
+       
+    TargetDocument.Bookmarks.ShowHidden = True
+           
     Dim ctBkm As Bookmark
     
     Dim tmpArray() As String
@@ -2917,6 +2918,14 @@ Function Get_IDs_Bookmarks_LocationCheck(TargetDocument As Document) As String()
 Dim allID_Bookmarks() As String
 
 allID_Bookmarks = Get_All_Hidden_IDBookmarks(TargetDocument)
+
+
+If IsNotDimensionedArr(allID_Bookmarks) Then
+    MsgBox "Get_IDs_Bookmarks_LocationCheck: Error, could not find ANY hidden <_###> bookmark in document! These should not be missing! Please check existence/ remedy and retry" & vbCr & vbCr & _
+        "Also please be informed that sometimes, it suffises to check existence of these bookmarks, show/ hide hidden bookmarks and they will magically appear"
+    'Get_IDs_Bookmarks_LocationCheck = Null
+    Exit Function
+End If
 
 
 Dim tmpResult() As String
@@ -2979,12 +2988,6 @@ Get_IDs_Bookmarks_LocationCheck = tmpResult
 
 
 End Function
-
-
-
-
-
-End Sub
 
 Function Sort_2D_Array(ByVal ArrayToSort As Variant, Optional SortDescending, Optional SortBySecondDimension) As Variant
          
