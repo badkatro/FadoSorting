@@ -2,7 +2,7 @@
 ## VBA Module: **[FadoSorting](/scripts/FadoSorting.vba "source is here")**
 ### Type: StdModule  
 
-This procedure list for repo (FadoSorting) was automatically created on 18/05/2017 18:32:41 by VBAGit.
+This procedure list for repo (FadoSorting) was automatically created on 19/05/2017 16:45:40 by VBAGit.
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation")
 
 Below is a section for each procedure in FadoSorting
@@ -170,6 +170,19 @@ Scope: **Public**
 Description: ****  
 
 *Sub All_IDs_Bookmarks_LocationCheck_CtDoc()*  
+
+**no arguments required for this procedure**
+
+
+---
+VBA Procedure: **Build_Index_AtCursorPosition**  
+Type: **Sub**  
+Returns: **void**  
+Return description: ****  
+Scope: **Public**  
+Description: ****  
+
+*Sub Build_Index_AtCursorPosition()*  
 
 **no arguments required for this procedure**
 
